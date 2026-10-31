@@ -26,7 +26,6 @@
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
-    /* background-attachment: fixed removed — unreliable on iOS */
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-user-select: none;
     user-select: none;
@@ -41,7 +40,7 @@
   #stage {
     display: inline-block;
     line-height: 0;
-    touch-action: manipulation;    /* no double-tap zoom, no tap delay */
+    touch-action: manipulation;
   }
 
   #media {
@@ -52,8 +51,7 @@
     user-drag: none;
     outline: none;
     background: transparent;
-    /* prevents long-press “Save image” sheet on iOS */
-    -webkit-touch-callout: none;
+    -webkit-touch-callout: none;   /* prevents iOS long-press menu */
   }
 
   #media.ready    { opacity: 1; }
@@ -72,12 +70,12 @@
     folder: "images/",
     extensions: ["gif", "mp4", "webm", "webp", "png", "jpg", "jpeg", "avif", "jxl"],
     bgExtensions: ["jpg", "jpeg", "png", "webp", "gif", "avif", "jxl"],
-    mediaName: "love",              // Changed from "gif" to "love"
+    mediaName: "love",
     fitRatio: 0.86,
     allowUpscale: false,
     videoMuted: true,
     bgNames: ["bg"],
-    bgScrim: 0                      // Changed to 0 for transparent overlay
+    bgScrim: 0
   };
 
   const VIDEO_RE = /\.(mp4|webm|mov|m4v|ogv|ogg|mkv)$/i;
@@ -88,7 +86,6 @@
   let isVideo = false;
   let mediaW = 1, mediaH = 1;
 
-  /* Visible viewport — visualViewport when available (mobile) */
   function vpW() { return (window.visualViewport && visualViewport.width)  || window.innerWidth; }
   function vpH() { return (window.visualViewport && visualViewport.height) || window.innerHeight; }
 
@@ -98,7 +95,11 @@
   function exists(url) {
     return fetch(url, { method: "HEAD" })
       .then(res => res.ok)
-      .catch(() => existsViaImage(url));
+      .catch(() => {
+        // iOS Safari blocks fetch on file:// but will still load the media tag
+        if (VIDEO_RE.test(url)) return true;
+        return existsViaImage(url);
+      });
   }
 
   function existsViaImage(url) {
@@ -135,8 +136,6 @@
 
       const scrim = clamp(CONFIG.bgScrim, 0, 1);
       const layers = [];
-
-      // Since scrim is 0, this block is skipped entirely
       if (scrim > 0) {
         layers.push(`linear-gradient(rgba(0,0,0,${scrim}), rgba(0,0,0,${scrim}))`);
       }
@@ -144,7 +143,6 @@
       layers.push(`radial-gradient(circle at 50% 25%, #1c2230, #0a0c11 70%)`);
 
       document.body.style.backgroundImage = layers.join(", ");
-      // Adjusting background-size to match the number of layers
       document.body.style.backgroundSize = scrim > 0 ? "cover, cover, cover" : "cover, cover";
       document.body.style.backgroundPosition = "center, center, center";
       document.body.style.backgroundRepeat = "no-repeat, no-repeat, no-repeat";
@@ -193,18 +191,33 @@
   function createVideo(url) {
     const v = document.createElement("video");
     v.id = "media";
-    v.src = url;
     v.loop = true;
+    
+    // iOS Safari strictly requires muted to be an HTML attribute
+    v.setAttribute("muted", "");
     v.muted = CONFIG.videoMuted;
+    
     v.playsInline = true;
     v.preload = "auto";
     v.controls = false;
     v.draggable = false;
     v.classList.add("playable");
+    
+    // Mobile browser attributes
     v.setAttribute("playsinline", "");
     v.setAttribute("webkit-playsinline", "");
     v.setAttribute("x5-playsinline", "");
     v.setAttribute("disablepictureinpicture", "");
+
+    // Use <source> instead of v.src for Safari's parser
+    const source = document.createElement("source");
+    // Append #t=0.001 to force Safari to render the very first frame
+    source.src = url + "#t=0.001";
+    
+    if (url.endsWith(".mp4")) source.type = "video/mp4";
+    else if (url.endsWith(".webm")) source.type = "video/webm";
+    
+    v.appendChild(source);
 
     v.addEventListener("error", () => console.warn("[media] video failed:", url));
 
@@ -213,12 +226,6 @@
       mediaH = v.videoHeight || 1;
       fitMedia();
       v.classList.add("ready");
-
-      /* iOS Safari won't paint a paused video's first frame until it
-         has been decoded. Seeking to a hair past 0 forces it. */
-      if (v.currentTime === 0) {
-        try { v.currentTime = 0.001; } catch (_) {}
-      }
     }, { once: true });
 
     stage.appendChild(v);

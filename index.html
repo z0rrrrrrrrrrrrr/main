@@ -2,48 +2,58 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-<title>WIFE WIFE WIFE</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>wife wife wife</title>
 <style>
   * { box-sizing: border-box; }
 
-  html, body {
+  html {
     height: 100%;
+    height: 100dvh;                /* dynamic viewport height (mobile) */
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;     /* no pull-to-refresh / bounce */
+  }
+
+  body {
+    height: 100%;
+    height: 100dvh;
     margin: 0;
     overflow: hidden;
+    overscroll-behavior: none;
     background-color: #0a0c11;
     /* fallback gradient — replaced by images/bg.* when found */
     background-image: radial-gradient(circle at 50% 25%, #1c2230, #0a0c11 70%);
     background-position: center;
     background-size: cover;
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    /* background-attachment: fixed removed — unreliable on iOS */
     font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-user-select: none;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-  }
-
-  body {
     display: flex;
     align-items: center;
     justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
   }
 
   #stage {
     display: inline-block;
     line-height: 0;
+    touch-action: manipulation;    /* no double-tap zoom, no tap delay */
   }
 
   #media {
     display: block;
-    /* Removed border-radius and box-shadow so it merges with the background */
     opacity: 0;
     transition: opacity 0.5s ease;
     -webkit-user-drag: none;
     user-drag: none;
     outline: none;
-    background: transparent; /* Allows the background to show through if the image has transparency */
+    background: transparent;
+    /* prevents long-press “Save image” sheet on iOS */
+    -webkit-touch-callout: none;
   }
 
   #media.ready    { opacity: 1; }
@@ -62,12 +72,12 @@
     folder: "images/",
     extensions: ["gif", "mp4", "webm", "webp", "png", "jpg", "jpeg", "avif", "jxl"],
     bgExtensions: ["jpg", "jpeg", "png", "webp", "gif", "avif", "jxl"],
-    mediaName: "love",               // gif.gif, gif.mp4, gif.webp, …
-    fitRatio: 0.86,                 // fills at most 86 % of the viewport
-    allowUpscale: false,            // false = small files stay small
-    videoMuted: true,               // no controls → muted is safer
+    mediaName: "love",              // Changed from "gif" to "love"
+    fitRatio: 0.86,
+    allowUpscale: false,
+    videoMuted: true,
     bgNames: ["bg"],
-    bgScrim: 0.0
+    bgScrim: 0                      // Changed to 0 for transparent overlay
   };
 
   const VIDEO_RE = /\.(mp4|webm|mov|m4v|ogv|ogg|mkv)$/i;
@@ -78,6 +88,11 @@
   let isVideo = false;
   let mediaW = 1, mediaH = 1;
 
+  /* Visible viewport — visualViewport when available (mobile) */
+  function vpW() { return (window.visualViewport && visualViewport.width)  || window.innerWidth; }
+  function vpH() { return (window.visualViewport && visualViewport.height) || window.innerHeight; }
+
+  /* ---------------- file discovery ---------------- */
   const imageUrl = (name, ext) => `${CONFIG.folder}${name}.${ext}`;
 
   function exists(url) {
@@ -106,6 +121,7 @@
     return hit ? hit.url : null;
   }
 
+  /* ---------------- background ---------------- */
   async function applyBackground() {
     for (const name of CONFIG.bgNames) {
       const url = await findFile(name, CONFIG.bgExtensions);
@@ -120,6 +136,7 @@
       const scrim = clamp(CONFIG.bgScrim, 0, 1);
       const layers = [];
 
+      // Since scrim is 0, this block is skipped entirely
       if (scrim > 0) {
         layers.push(`linear-gradient(rgba(0,0,0,${scrim}), rgba(0,0,0,${scrim}))`);
       }
@@ -127,7 +144,8 @@
       layers.push(`radial-gradient(circle at 50% 25%, #1c2230, #0a0c11 70%)`);
 
       document.body.style.backgroundImage = layers.join(", ");
-      document.body.style.backgroundSize = "cover, cover, cover";
+      // Adjusting background-size to match the number of layers
+      document.body.style.backgroundSize = scrim > 0 ? "cover, cover, cover" : "cover, cover";
       document.body.style.backgroundPosition = "center, center, center";
       document.body.style.backgroundRepeat = "no-repeat, no-repeat, no-repeat";
       return url;
@@ -135,10 +153,11 @@
     return null;
   }
 
+  /* ---------------- sizing ---------------- */
   function fitMedia() {
     if (!media) return;
-    const maxW = window.innerWidth  * CONFIG.fitRatio;
-    const maxH = window.innerHeight * CONFIG.fitRatio;
+    const maxW = vpW() * CONFIG.fitRatio;
+    const maxH = vpH() * CONFIG.fitRatio;
     let scale = Math.min(maxW / mediaW, maxH / mediaH);
     if (!CONFIG.allowUpscale) scale = Math.min(scale, 1);
     media.style.width  = Math.round(mediaW * scale) + "px";
@@ -146,7 +165,14 @@
   }
 
   window.addEventListener("resize", fitMedia);
+  window.addEventListener("orientationchange", () => setTimeout(fitMedia, 100));
 
+  if (window.visualViewport) {
+    visualViewport.addEventListener("resize", fitMedia);
+    visualViewport.addEventListener("scroll", fitMedia);
+  }
+
+  /* ---------------- element factories ---------------- */
   function createImage(url) {
     const img = document.createElement("img");
     img.id = "media";
@@ -177,14 +203,22 @@
     v.classList.add("playable");
     v.setAttribute("playsinline", "");
     v.setAttribute("webkit-playsinline", "");
+    v.setAttribute("x5-playsinline", "");
     v.setAttribute("disablepictureinpicture", "");
 
     v.addEventListener("error", () => console.warn("[media] video failed:", url));
+
     v.addEventListener("loadedmetadata", () => {
       mediaW = v.videoWidth  || 1;
       mediaH = v.videoHeight || 1;
       fitMedia();
       v.classList.add("ready");
+
+      /* iOS Safari won't paint a paused video's first frame until it
+         has been decoded. Seeking to a hair past 0 forces it. */
+      if (v.currentTime === 0) {
+        try { v.currentTime = 0.001; } catch (_) {}
+      }
     }, { once: true });
 
     stage.appendChild(v);
@@ -192,6 +226,7 @@
     isVideo = true;
   }
 
+  /* ---------------- click to play / pause ---------------- */
   stage.addEventListener("click", () => {
     if (!isVideo || !media) return;
     if (media.paused) {
@@ -204,6 +239,7 @@
     }
   });
 
+  /* ---------------- go ---------------- */
   (async () => {
     const [, url] = await Promise.all([
       applyBackground(),

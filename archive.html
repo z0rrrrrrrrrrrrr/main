@@ -162,7 +162,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
 @keyframes pulseActivity { 0% { box-shadow: 0 0 0 0 rgba(255,255,255,.45); } 70% { box-shadow: 0 0 0 6px rgba(255,255,255,0); } 100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); } }
 .activity-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 @media (max-width: 520px) { .activity-indicator { top: calc(12px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right)); min-height: 30px; padding-inline: 10px; } .activity-label { display: none; } }
-.maintenance-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.maintenance-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
 .maintenance-box { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: rgba(0,0,0,.14); }
 .file { display: none; }
 .review { display: grid; gap: 8px; max-height: 300px; overflow: auto; }
@@ -270,6 +270,36 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
 @media (max-width: 390px) {
   #view-downloaded .toolbar-actions .segment { font-size: .7rem; padding-inline: 4px; }
 }
+.backup-strip { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: rgba(20,24,34,.8); }
+.backup-strip-copy { display: grid; gap: 5px; min-width: 0; }
+.backup-strip-copy strong { font-size: .84rem; font-weight: 750; }
+.backup-strip-copy span { color: var(--muted); font-size: .78rem; overflow-wrap: anywhere; }
+.backup-strip[data-state="error"], .backup-strip[data-state="conflict"] { border-color: rgba(242,195,107,.5); }
+.backup-strip[data-state="error"] #cloudBackupStatus, .backup-strip[data-state="conflict"] #cloudBackupStatus { color: var(--warn); }
+.field-label { display: grid; gap: 7px; font-size: .8rem; color: var(--muted); font-weight: 700; }
+.maintenance-box .field-label { margin-top: 12px; }
+.backup-help { margin: 12px 0 0; }
+.backup-help summary, .advanced-tools > summary { cursor: pointer; color: var(--brand); font-size: .85rem; font-weight: 750; }
+.advanced-tools { padding-top: 14px; border-top: 1px solid var(--line); }
+.advanced-tools .mini-actions { margin-top: 14px; }
+.backup-feedback { min-height: 1.4em; font-size: .8rem; color: var(--muted); margin: 10px 0; overflow-wrap: anywhere; }
+.backup-feedback[data-error="true"] { color: var(--warn); }
+.backup-dialog { width: min(620px, calc(100vw - 32px)); max-height: min(85dvh, 900px); border: 1px solid var(--line); border-radius: 20px; background: var(--surface); color: var(--text); padding: 24px; box-shadow: var(--shadow); }
+.backup-dialog::backdrop { background: rgba(0,0,0,.72); backdrop-filter: blur(5px); }
+.backup-dialog-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.backup-dialog h2 { font-size: 1.2rem; margin: 0; }
+.backup-dialog p { font-size: .9rem; line-height: 1.6; }
+.backup-dialog-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; padding-top: 20px; }
+.backup-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; margin: 14px 0; }
+.backup-summary > div { background: var(--surface-soft); padding: 14px; border: 1px solid var(--line); border-radius: 12px; }
+.backup-summary strong, .backup-summary small { display: block; overflow-wrap: anywhere; }
+.backup-summary small { color: var(--muted); margin-top: 7px; line-height: 1.5; }
+.recovery-list { display: grid; gap: 8px; }
+.recovery-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px; background: var(--surface-soft); border-radius: 10px; }
+.recovery-row small { display: block; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+.updates-sort-label { color: var(--muted); font-size: .8rem; margin-left: 8px; }
+@media(max-width: 800px) { #view-downloaded .toolbar-actions .updates-sort-label { grid-column: 1 / -1; margin: 0; } #view-downloaded .toolbar-actions .segment { overflow: hidden; text-overflow: ellipsis; min-height: 40px; } }
+@media(max-width: 600px) { .backup-strip { padding: 12px 14px; } .backup-strip .mini-actions { width: 100%; } .backup-dialog { padding: 18px; } .backup-summary { grid-template-columns: 1fr; } .recovery-row { align-items: flex-start; } .maintenance-box { min-width: 0; } .maintenance-box .btn { white-space: normal; padding: 9px 14px; } }
 </style>
 </head>
 <body>
@@ -293,6 +323,18 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         <input type="text" id="boardSearchInput" class="input pill-input" placeholder="Filter active shows..." autocomplete="off" />
       </div>
     </header>
+
+    <section class="backup-strip" id="backupStrip" data-state="starting">
+      <div class="backup-strip-copy" aria-live="polite" aria-atomic="true">
+        <strong id="localBackupStatus">Loading saved library…</strong>
+        <span id="cloudBackupStatus">Cloud backup is not connected</span>
+      </div>
+      <div class="mini-actions">
+        <button class="btn compact" id="retryBackupBtn" type="button" hidden>Retry backup</button>
+        <button class="btn compact primary" id="reviewConflictBtn" type="button" hidden>Review changes</button>
+        <button class="btn compact" id="quickCheckReleasesBtn" type="button">Check releases</button>
+      </div>
+    </section>
 
     <section class="boards" id="boards">
       <div class="tab-view active" id="view-active">
@@ -320,8 +362,9 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
               <button class="segment active" id="filterAllBtn" type="button">All</button>
               <button class="segment" id="filterCompleteBtn" type="button">Complete</button>
               <button class="segment" id="filterIncompleteBtn" type="button">Incomplete</button>
-              <button class="segment" id="filterUpdatedBtn" type="button" hidden>Updated</button>
+              <button class="segment" id="filterUpdatedBtn" type="button" title="Pending updates, newest first">Updated (0)</button>
             </div>
+            <span class="updates-sort-label" id="updatesSortLabel" hidden>Newest first</span>
             <button class="btn compact" id="editOrderBtn" type="button">Edit Order</button>
             <button class="btn compact" id="addFolderBtn" type="button">+ Folder</button>
             <button class="btn compact" id="sortLibraryBtn" type="button">A-Z</button>
@@ -418,38 +461,61 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
             <p class="hint" id="releasesApiStatus" aria-live="polite">Checks the configured API without changing your board.</p>
           </div>
           <div class="maintenance-box">
-            <strong>Library tools</strong>
-            <p class="hint">Refresh Stale checks active Found/Watching entries after 12 hours and Library entries after 24 hours. Release checks use AniList IDs and small batches. Failed checks keep existing data and become eligible for retry after 5 minutes (or a longer server cooldown).</p>
+            <strong>Release checks</strong>
+            <p class="hint">Checks shows that are due for an update. Your existing release data is kept if a service is unavailable.</p>
             <div class="mini-actions">
-              <button class="btn" id="smartGroupBtn" type="button">Smart Group</button>
-              <button class="btn" id="refreshReleasesBtn" type="button">Refresh Stale</button>
-              <button class="btn" id="refreshAllReleasesBtn" type="button">Full Refresh</button>
+              <button class="btn" id="refreshReleasesBtn" type="button">Check releases</button>
               <button class="btn danger" id="cancelReleaseRefreshBtn" type="button" hidden>Cancel</button>
-              <button class="btn" id="regenerateAniListBtn" type="button">Regenerate AniList</button>
             </div>
             <div class="release-progress" id="releaseRefreshProgress" hidden></div>
+            <details class="advanced-tools" style="margin-top: 16px;">
+              <summary>Advanced tools</summary>
+              <p class="hint">Recheck every release, organize shows into folders, or repair missing AniList information.</p>
+              <div class="mini-actions">
+                <button class="btn" id="refreshAllReleasesBtn" type="button">Recheck all releases</button>
+                <button class="btn" id="smartGroupBtn" type="button">Organize folders</button>
+                <button class="btn" id="regenerateAniListBtn" type="button">Repair AniList details</button>
+              </div>
+            </details>
           </div>
           <div class="maintenance-box">
             <strong>Data</strong>
-            <p class="hint">Normal JSON and cloud sync stay small. Portable archives embed covers for offline use and can be merged back later.</p>
+            <p class="hint">Export data for a small backup, or include covers for offline use. Cloud backups exclude embedded covers. Imports are previewed before changing your library.</p>
             <div class="mini-actions">
-              <button class="btn" id="exportBtn" type="button">Export JSON</button>
-              <button class="btn" id="portableExportBtn" type="button">Export Portable Archive</button>
+              <button class="btn" id="exportBtn" type="button">Export data</button>
+              <button class="btn" id="portableExportBtn" type="button">Export with covers</button>
               <input class="file" id="importFile" type="file" accept=".json,application/json" />
-              <button class="btn" id="importBtn" type="button">Import JSON / Portable</button>
+              <button class="btn" id="importBtn" type="button">Import data</button>
               <select class="input compact-select" id="importMode" aria-label="Import mode">
                 <option value="replace">Replace board</option>
                 <option value="merge">Merge into board</option>
               </select>
-              <button class="btn danger" id="clearBtn" type="button">Clear Board</button>
+              <button class="btn" id="backupHistoryBtn" type="button">Restore previous backup</button>
+              <button class="btn danger" id="clearBtn" type="button">Clear library</button>
             </div>
           </div>
           <div class="maintenance-box">
-            <strong>Cloud Sync</strong>
-            <p class="hint">PAT and Gist ID stay in localStorage. The board is saved in IndexedDB/local fallback and synced lightweight to Gist.</p>
-            <input class="input" id="githubPat" type="password" placeholder="GitHub PAT (ghp_...)" autocomplete="off" spellcheck="false" />
-            <input class="input" id="gistId" type="text" placeholder="Gist ID" autocomplete="off" spellcheck="false" />
-            <button class="btn primary" id="syncNowBtn" type="button">Pull & Sync</button>
+            <strong>Cloud backup &amp; sync</strong>
+            <p class="hint">Keep a copy on GitHub and use it on your other devices. Display preferences stay on this device.</p>
+            <label class="field-label" for="githubPat">GitHub access token
+              <input class="input" id="githubPat" type="password" placeholder="Paste your GitHub token" autocomplete="off" spellcheck="false" />
+            </label>
+            <label class="field-label" for="gistId">Backup location
+              <input class="input" id="gistId" type="text" placeholder="Paste a Gist URL or ID" autocomplete="off" spellcheck="false" />
+            </label>
+            <p class="backup-feedback" id="backupSetupFeedback" role="status"></p>
+            <p class="hint" id="backupSizeStatus"></p>
+            <div class="mini-actions">
+              <button class="btn primary" id="syncNowBtn" type="button">Sync now</button>
+              <button class="btn" id="testBackupBtn" type="button">Test connection</button>
+              <a class="btn" id="openBackupLink" href="https://gist.github.com/" target="_blank" rel="noopener noreferrer" hidden>Open backup</a>
+            </div>
+            <details class="backup-help">
+              <summary>Set up a new backup</summary>
+              <p class="hint">Enter a token with Gist write access, then create a backup of this library. A secret Gist is unlisted; anyone with its link can read it. Your token stays in this browser and is never included in exports.</p>
+              <button class="btn" id="createBackupBtn" type="button">Create new backup</button>
+              <p class="hint"><a href="https://github.com/settings/tokens" target="_blank" rel="noopener noreferrer">Manage GitHub tokens</a> · For a classic token, enable only the <strong>gist</strong> scope.</p>
+            </details>
           </div>
         </div>
       </div>
@@ -468,6 +534,15 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
 </div>
 <div class="toast-area" id="toastArea"></div>
 
+<dialog class="backup-dialog" id="backupDialog" aria-labelledby="backupDialogTitle">
+  <div class="backup-dialog-header">
+    <h2 id="backupDialogTitle">Backups</h2>
+    <button class="icon-btn" id="closeBackupDialogBtn" type="button" aria-label="Close backup dialog">×</button>
+  </div>
+  <div id="backupDialogBody"></div>
+  <div class="backup-dialog-actions" id="backupDialogActions"></div>
+</dialog>
+
 <script>
       const ANILIST_ENDPOINT = "https://graphql.anilist.co";
       // Retain the supplied hotfix. The API host and public website are independent.
@@ -483,6 +558,10 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
       const STORAGE_FALLBACK_KEY = STORAGE_KEY + ":fallback";
       const STORAGE_MIGRATED_KEY = STORAGE_KEY + ":migrated";
       const SYNC_SETTINGS_KEY = "anilist-releases-sync-v1";
+      const PREFERENCES_KEY = STORAGE_KEY + ":preferences";
+      const SYNC_META_KEY = STORAGE_KEY + ":cloud-meta:";
+      const RECOVERY_KEY = STORAGE_KEY + ":recovery";
+      const RECOVERY_LIMIT = 8;
       const DB_NAME = "anilist-releases-board-db";
       const DB_STORE = "board";
       const DB_STATE_ID = "current";
@@ -503,6 +582,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
       const qa = (s) => Array.from(document.querySelectorAll(s));
 
       const state = {
+        updatedAt: null,
         shows: [],
         groups: [],
         groupOrder: {},
@@ -539,11 +619,45 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         activityCount = 0,
         activityHideTimer = null,
         activityLabel = "Working...";
+      let localSaveQueue = Promise.resolve(),
+        cloudQueue = Promise.resolve(),
+        recoveryQueue = Promise.resolve(),
+        lastObservedData = null,
+        localChangeSerial = 0,
+        workingStorageReady = false,
+        hasStoredLibrary = false,
+        creatingCloudBackup = false,
+        syncMeta = {},
+        settingsSerial = 0,
+        pendingCloudConflict = null,
+        cloudBusyCount = 0,
+        lastGithubWriteAt = 0,
+        githubRetryAt = 0,
+        dialogSerial = 0;
+      const backupStatus = { local: "starting", localAt: null, cloud: "disconnected", message: "" };
       const RESUME_RELEASE_CHECK_STALE_MS = 15 * 60 * 1000;
       const commentTimers = new Map(),
         groupNameTimers = new Map();
 
       const els = {
+        backupStrip: q("#backupStrip"),
+        localBackupStatus: q("#localBackupStatus"),
+        cloudBackupStatus: q("#cloudBackupStatus"),
+        retryBackupBtn: q("#retryBackupBtn"),
+        reviewConflictBtn: q("#reviewConflictBtn"),
+        quickCheckReleasesBtn: q("#quickCheckReleasesBtn"),
+        updatesSortLabel: q("#updatesSortLabel"),
+        backupHistoryBtn: q("#backupHistoryBtn"),
+        backupSetupFeedback: q("#backupSetupFeedback"),
+        backupSizeStatus: q("#backupSizeStatus"),
+        testBackupBtn: q("#testBackupBtn"),
+        createBackupBtn: q("#createBackupBtn"),
+        openBackupLink: q("#openBackupLink"),
+        backupDialog: q("#backupDialog"),
+        backupDialogTitle: q("#backupDialogTitle"),
+        backupDialogBody: q("#backupDialogBody"),
+        backupDialogActions: q("#backupDialogActions"),
+        closeBackupDialogBtn: q("#closeBackupDialogBtn"),
         boards: q("#boards"),
         tabs: qa(".tab"),
         views: qa(".tab-view"),
@@ -823,7 +937,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
       function normalizeShow(s) {
         if (!s.id) s.id = uuid();
         if (!s.board) s.board = s.downloaded ? "downloaded" : "watching";
-        if (!s.releasesMoe) s.releasesMoe = defaultRelease();
+        s.releasesMoe = defaultRelease(s.releasesMoe);
         if (!Array.isArray(s.relations)) s.relations = [];
         if (!state.ui.openNotes) state.ui.openNotes = {};
         if (!("allAvailableDownloaded" in s)) s.allAvailableDownloaded = false;
@@ -1173,9 +1287,10 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           }),
         );
         if (byteSize(text) <= MAX_LOCAL_FALLBACK_BYTES) {
-          setLocal(STORAGE_FALLBACK_KEY, text);
+          return setLocal(STORAGE_FALLBACK_KEY, text);
         } else {
-          removeLocal(STORAGE_FALLBACK_KEY);
+          // Retain the last usable fallback if the current snapshot no longer fits.
+          return false;
         }
       }
       function openBoardDb() {
@@ -1211,7 +1326,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
             finish(reject, req.error || new Error("IndexedDB open failed"));
           req.onblocked = () => finish(reject, new Error("IndexedDB blocked"));
         });
-        return dbPromise;
+        return dbPromise.catch((error) => { dbPromise = null; throw error; });
       }
       function idbGet(db, key) {
         return new Promise((resolve, reject) => {
@@ -1227,13 +1342,13 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           }
         });
       }
-      function idbPut(db, value) {
+      function idbPut(db, value, key = DB_STATE_ID) {
         return new Promise((resolve, reject) => {
           let tx;
           try {
             tx = db.transaction(DB_STORE, "readwrite");
             tx.objectStore(DB_STORE).put({
-              id: DB_STATE_ID,
+              id: key,
               value,
               updatedAt: new Date().toISOString(),
             });
@@ -1265,24 +1380,32 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
             "IndexedDB save failed; using lightweight local fallback",
             e,
           );
-          saveLightweightFallback(snapshot);
-          return false;
+          const fallbackSaved = saveLightweightFallback(snapshot);
+          // A stripped fallback cannot claim that embedded covers were saved.
+          return fallbackSaved && !savedShows(snapshot).some((s) => isDataUrl(s.coverImage) || s.coverImageData);
         }
       }
       async function hydrateWorkingStorage() {
+        const serial = localChangeSerial;
         try {
           const indexed = await readIndexedState();
           const local = loadLocalSnapshot();
-          if (indexed && savedShows(indexed).length) {
+          if (serial !== localChangeSerial) return;
+          if (indexed) {
             applyState(indexed);
+            hasStoredLibrary = true;
+            observeLoadedState();
             render();
             saveLightweightFallback(indexed);
             setStatus("System Ready");
             return;
           }
-          if (local && savedShows(local).length) {
+          if (local) {
             await persistState(local);
+            if (serial !== localChangeSerial) return;
             applyState(local);
+            hasStoredLibrary = true;
+            observeLoadedState();
             render();
             removeLocal(STORAGE_KEY);
             toast("Migrated local board to IndexedDB.");
@@ -1297,32 +1420,20 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           setStatus("System Ready");
         }
       }
-      function save() {
-        try {
-          reconcile();
-          const snapshot = clonePlain(state);
-          saveLightweightFallback(snapshot);
-          persistState(snapshot);
-          if (!suppressCloudSync) {
-            clearTimeout(cloudSyncTimer);
-            cloudSyncTimer = setTimeout(() => pushToCloud(snapshot), 2500);
-          }
-        } catch (e) {
-          console.warn(e);
-          toast("Save failed. Export a backup soon.", "error");
-        }
-      }
       function load() {
         try {
           const local = loadLocalSnapshot();
-          if (local) applyState(local);
+          if (local) { applyState(local); hasStoredLibrary = true; }
           else reconcile();
+          applyPreferences();
+          observeLoadedState();
         } catch (e) {
           console.warn("Local fallback failed", e);
           reconcile();
         }
       }
       function applyState(data) {
+        state.updatedAt = !Array.isArray(data) ? data?.updatedAt || null : null;
         state.shows = savedShows(data);
         state.groups =
           !Array.isArray(data) && Array.isArray(data?.groups)
@@ -1336,189 +1447,611 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         };
         state.ui = {
           ...defaultUi(),
-          ...(!Array.isArray(data) && data?.ui ? data.ui : {}),
+          ...(!Array.isArray(data) && data?.ui ? data.ui : state.ui),
         };
         reconcile();
+        applyPreferences();
         updateButtons();
       }
-      function loadSyncSettings() {
+      // Only library content travels to GitHub. Credentials, view state and recovery
+      // copies belong to this browser. Cloud equality never depends on device clocks.
+      function libraryData(data = state) {
+        const lightweight = stripEmbedded({ shows: savedShows(data) });
+        lightweight.shows.forEach((s) => {
+          delete s.coverImageData;
+          delete s.coverImageOriginalUrl;
+          delete s.coverImageIsEmbedded;
+        });
+        return {
+          backupFormat: 3,
+          updatedAt: data?.updatedAt || null,
+          shows: lightweight.shows,
+          groups: clonePlain(data?.groups || []).map((g) => {
+            delete g.collapsed;
+            return g;
+          }),
+          groupOrder: clonePlain(data?.groupOrder || {}),
+          order: { ...defaultOrder(), ...clonePlain(data?.order || {}) },
+        };
+      }
+      function stableJson(value) {
+        if (Array.isArray(value)) return '[' + value.map(stableJson).join(',') + ']';
+        if (value && typeof value === 'object')
+          return '{' + Object.keys(value).sort().filter((k) => value[k] !== undefined)
+            .map((k) => JSON.stringify(k) + ':' + stableJson(value[k])).join(',') + '}';
+        return JSON.stringify(value);
+      }
+      function dataSignature(data = state) {
+        const content = libraryData(data);
+        delete content.updatedAt;
+        delete content.backupFormat;
+        content.shows.forEach((s) => { delete s.coverImageStripped; });
+        content.shows.sort((a, b) => String(a.id || '').localeCompare(String(b.id || '')));
+        content.groups.sort((a, b) => String(a.id || '').localeCompare(String(b.id || '')));
+        return stableJson(content);
+      }
+      async function fingerprint(data) {
+        if (!globalThis.crypto?.subtle)
+          throw new Error('Open the site over HTTPS to enable cloud backup. Local saving still works.');
+        const bytes = new TextEncoder().encode(dataSignature(data));
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+      }
+      function validateBackup(data) {
+        const object = (v) => v && typeof v === 'object' && !Array.isArray(v);
+        if (!Array.isArray(data) && (!object(data) || !Array.isArray(data.shows)))
+          throw new Error('This is not a library backup: a shows list is required.');
+        const shows = savedShows(data);
+        const seen = new Set();
+        shows.forEach((s) => {
+          if (!object(s)) throw new Error('The backup contains an invalid show.');
+          if (s.id !== undefined && typeof s.id !== 'string') throw new Error('A show has an invalid ID.');
+          if (s.id && seen.has(s.id)) throw new Error('The backup contains duplicate show IDs.');
+          if (s.id) seen.add(s.id);
+          if (s.releasesMoe !== undefined && !object(s.releasesMoe))
+            throw new Error('A show contains invalid release data.');
+        });
+        if (!Array.isArray(data)) {
+          if (data.groups !== undefined && (!Array.isArray(data.groups) || data.groups.some((g) => !object(g) || (g.id !== undefined && typeof g.id !== 'string'))))
+            throw new Error('The backup contains invalid folders.');
+          const groupIds = new Set();
+          (data.groups || []).forEach((g) => {
+            if (g.id && (seen.has(g.id) || groupIds.has(g.id))) throw new Error('The backup contains duplicate folder IDs.');
+            if (g.id) groupIds.add(g.id);
+          });
+          for (const key of ['order', 'groupOrder']) {
+            if (data[key] !== undefined && (!object(data[key]) || Object.values(data[key]).some((ids) => !Array.isArray(ids) || ids.some((id) => typeof id !== 'string'))))
+              throw new Error('The backup contains invalid ordering data.');
+          }
+        }
+        return data;
+      }
+      function savePreferences() {
+        const collapsed = Object.fromEntries(state.groups.map((g) => [g.id, !!g.collapsed]));
+        setLocal(PREFERENCES_KEY, JSON.stringify({ ui: state.ui, collapsed }));
+      }
+      function applyPreferences() {
+        const prefs = parseMaybeJson(getLocal(PREFERENCES_KEY));
+        if (!prefs || typeof prefs !== 'object') return;
+        if (prefs.ui && typeof prefs.ui === 'object') state.ui = { ...defaultUi(), ...prefs.ui };
+        state.groups.forEach((g) => {
+          if (prefs.collapsed && Object.hasOwn(prefs.collapsed, g.id)) g.collapsed = !!prefs.collapsed[g.id];
+        });
+      }
+      function observeLoadedState() {
+        lastObservedData = dataSignature(state);
+        backupStatus.local = hasStoredLibrary ? 'saved' : 'ready';
+        backupStatus.localAt = state.updatedAt || null;
+        updateBackupStatus();
+      }
+      function queueLocalSave(snapshot, serial) {
+        localSaveQueue = localSaveQueue.catch(() => false).then(async () => {
+          const ok = await persistState(snapshot);
+          if (ok) hasStoredLibrary = true;
+          if (serial === localChangeSerial) {
+            backupStatus.local = ok ? 'saved' : 'error';
+            if (ok) backupStatus.localAt = new Date().toISOString();
+            updateBackupStatus();
+          }
+          return ok;
+        });
+        return localSaveQueue;
+      }
+      function scheduleCloudSync() {
+        clearTimeout(cloudSyncTimer);
+        if (!workingStorageReady || suppressCloudSync || creatingCloudBackup || pendingCloudConflict || !hasCloudCredentials()) return;
+        cloudSyncTimer = setTimeout(() => requestCloudSync(), 2500);
+      }
+      function save() {
         try {
-          const d = JSON.parse(localStorage.getItem(SYNC_SETTINGS_KEY) || "{}");
-          if (els.githubPat) els.githubPat.value = d.githubPat || "";
-          if (els.gistId) els.gistId.value = d.gistId || "";
-        } catch (e) {}
+          reconcile();
+          savePreferences();
+          const signature = dataSignature(state);
+          if (signature === lastObservedData) return localSaveQueue;
+          lastObservedData = signature;
+          state.updatedAt = new Date().toISOString();
+          localChangeSerial += 1;
+          backupStatus.local = 'saving';
+          if (hasCloudCredentials() && !['error', 'conflict'].includes(backupStatus.cloud)) backupStatus.cloud = 'pending';
+          const snapshot = clonePlain(state);
+          saveLightweightFallback(snapshot);
+          const saved = queueLocalSave(snapshot, localChangeSerial);
+          updateBackupStatus();
+          scheduleCloudSync();
+          return saved;
+        } catch (error) {
+          backupStatus.local = 'error';
+          updateBackupStatus();
+          toast('Could not save on this device. Export your data now.', 'error');
+          return Promise.resolve(false);
+        }
+      }
+      function normalizeGistId(value) {
+        const text = String(value || '').trim();
+        if (!text) return '';
+        let id = text;
+        if (/^https?:\/\//i.test(text)) {
+          let url;
+          try { url = new URL(text); } catch { throw new Error('Enter a valid Gist URL or ID.'); }
+          if (url.protocol !== 'https:' || url.hostname !== 'gist.github.com' || url.username || url.password)
+            throw new Error('Use a link from https://gist.github.com or paste only the Gist ID.');
+          const parts = url.pathname.split('/').filter(Boolean);
+          id = parts.length > 1 ? parts[1] : parts[0];
+        }
+        if (!/^[a-f0-9]{5,64}$/i.test(id || '')) throw new Error('The Gist ID should be the long letter-and-number ID from its URL.');
+        return id;
+      }
+      function cloudConfig() {
+        return { pat: els.githubPat?.value.trim() || '', gid: normalizeGistId(els.gistId?.value), serial: settingsSerial };
+      }
+      function sameConfig(config) {
+        try {
+          const current = cloudConfig();
+          return current.serial === config.serial && current.gid === config.gid && current.pat === config.pat;
+        } catch { return false; }
+      }
+      function hasCloudCredentials() {
+        try { const config = cloudConfig(); return !!(config.pat && config.gid); } catch { return false; }
+      }
+      function setSetupFeedback(message, error = false) {
+        if (!els.backupSetupFeedback) return;
+        els.backupSetupFeedback.textContent = message;
+        els.backupSetupFeedback.dataset.error = String(error);
+      }
+      function loadSyncSettings() {
+        const settings = parseMaybeJson(getLocal(SYNC_SETTINGS_KEY)) || {};
+        if (els.githubPat) els.githubPat.value = settings.githubPat || '';
+        if (els.gistId) {
+          try { els.gistId.value = normalizeGistId(settings.gistId); } catch { els.gistId.value = settings.gistId || ''; }
+        }
+        syncMeta = parseMaybeJson(getLocal(SYNC_META_KEY + (els.gistId?.value || ''))) || {};
+        backupStatus.cloud = hasCloudCredentials() ? 'unchecked' : 'disconnected';
+        updateBackupStatus();
       }
       function saveSyncSettings() {
         try {
-          localStorage.setItem(
-            SYNC_SETTINGS_KEY,
-            JSON.stringify({
-              githubPat: els.githubPat?.value.trim() || "",
-              gistId: els.gistId?.value.trim() || "",
-            }),
-          );
-        } catch (e) {}
-      }
-      function hasCloudCredentials() {
-        return !!(els.githubPat?.value.trim() && els.gistId?.value.trim());
-      }
-      async function pullFromCloud() {
-        const pat = els.githubPat?.value.trim() || "",
-          gid = els.gistId?.value.trim() || "";
-        lastCloudPullFailed = false;
-        if (!pat || !gid) return null;
-        setStatus("Pulling from Cloud...", "sync");
-        try {
-          const r = await fetch(
-            `https://api.github.com/gists/${encodeURIComponent(gid)}`,
-            {
-              headers: {
-                Accept: "application/vnd.github.v3+json",
-                Authorization: `Bearer ${pat}`,
-              },
-              signal: timeoutSignal(10000),
-            }
-          );
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          const j = await r.json();
-          const content = j.files?.["state.json"]?.content;
-          return content ? JSON.parse(content) : null;
-        } catch (e) {
-          console.warn("cloud pull", e);
-          lastCloudPullFailed = true;
-          setStatus("System Ready");
-          return null;
-        }
-      }
-      async function pushToCloud(obj, { toastOnError = false } = {}) {
-        const pat = els.githubPat?.value.trim() || "",
-          gid = els.gistId?.value.trim() || "";
-        if (!pat || !gid) return false;
-        const payload = JSON.stringify(stripEmbedded(obj), null, 2);
-        if (byteSize(payload) > MAX_CLOUD_SYNC_BYTES) {
-          setStatus("Cloud sync skipped: JSON too large", "error");
-          toast(
-            "Cloud sync skipped because the lightweight JSON is too large.",
-            "error",
-          );
-          return false;
-        }
-        setStatus("Saving to Cloud...", "sync");
-        try {
-          const r = await fetch(
-            `https://api.github.com/gists/${encodeURIComponent(gid)}`,
-            {
-              method: "PATCH",
-              headers: {
-                Accept: "application/vnd.github.v3+json",
-                Authorization: `Bearer ${pat}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                files: { "state.json": { content: payload } },
-              }),
-              signal: timeoutSignal(10000),
-            }
-          );
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          setStatus("System Ready");
+          const config = cloudConfig();
+          const previous = parseMaybeJson(getLocal(SYNC_SETTINGS_KEY)) || {};
+          if (els.gistId) els.gistId.value = config.gid;
+          const changed = previous.githubPat !== config.pat || previous.gistId !== config.gid;
+          if (!setLocal(SYNC_SETTINGS_KEY, JSON.stringify({ githubPat: config.pat, gistId: config.gid })))
+            throw new Error('These settings could not be remembered. Check browser storage settings.');
+          if (changed) {
+            settingsSerial += 1;
+            githubRetryAt = 0;
+            clearTimeout(cloudSyncTimer);
+            pendingCloudConflict = null;
+            syncMeta = parseMaybeJson(getLocal(SYNC_META_KEY + config.gid)) || {};
+            backupStatus.cloud = config.pat && config.gid ? 'unchecked' : 'disconnected';
+            backupStatus.message = '';
+          }
+          setSetupFeedback(config.pat && config.gid ? 'Ready. Test the connection or sync to compare your copies.' : 'Enter a token and a backup location, or create a new backup below.');
+          updateBackupStatus();
           return true;
-        } catch (e) {
-          console.warn("cloud push", e);
-          setStatus("Sync Failed", "error");
-          if (toastOnError) toast("Cloud save failed", "error");
+        } catch (error) {
+          setSetupFeedback(error.message, true);
           return false;
         }
       }
-      async function autoCloud({ announce = false, toastResults = announce, toastErrors = true } = {}) {
-        if (!els.githubPat?.value.trim() || !els.gistId?.value.trim()) return;
-        let progressToast = announce
-          ? toast("Pulling from Cloud...", "", { duration: 0 })
-          : null;
+      function updateBackupStatus() {
+        const configured = hasCloudCredentials();
+        const localMessages = {
+          starting: 'Loading saved library…', ready: 'Ready on this device',
+          saving: 'Saving on this device…', saved: 'Saved on this device',
+          error: 'Could not save on this device — export your data',
+        };
+        if (els.localBackupStatus) els.localBackupStatus.textContent = localMessages[backupStatus.local] || localMessages.ready;
+        let message = 'Cloud backup is not connected';
+        if (configured) {
+          const messages = {
+            unchecked: 'Cloud backup not checked yet', pending: 'Changes are waiting for cloud backup',
+            checking: 'Checking cloud backup…', saving: 'Saving cloud backup…',
+            ok: syncMeta.lastBackupAt ? `Cloud backup: ${fmtAgo(syncMeta.lastBackupAt)}` : 'Cloud backup is up to date',
+            conflict: 'Another copy has changes — review before syncing',
+            error: backupStatus.message || 'Cloud backup needs attention',
+          };
+          message = messages[backupStatus.cloud] || messages.unchecked;
+        }
+        if (els.cloudBackupStatus) els.cloudBackupStatus.textContent = message;
+        if (els.backupStrip) els.backupStrip.dataset.state = backupStatus.local === 'error' ? 'error' : backupStatus.cloud;
+        if (els.retryBackupBtn) els.retryBackupBtn.hidden = !configured || backupStatus.cloud !== 'error';
+        if (els.reviewConflictBtn) els.reviewConflictBtn.hidden = !pendingCloudConflict;
+        if (els.openBackupLink) {
+          let gid = '';
+          try { gid = normalizeGistId(els.gistId?.value); } catch {}
+          els.openBackupLink.hidden = !gid;
+          if (gid) els.openBackupLink.href = 'https://gist.github.com/' + encodeURIComponent(gid);
+        }
+        if (els.backupSizeStatus) {
+          const size = byteSize(JSON.stringify(libraryData(state)));
+          els.backupSizeStatus.textContent = `${Math.ceil(size / 1000)} KB of ${MAX_CLOUD_SYNC_BYTES / 1000} KB cloud backup limit${size > MAX_CLOUD_SYNC_BYTES ? ' — export data to keep a separate backup' : ''}`;
+        }
+        const busy = cloudBusyCount > 0;
+        for (const element of [els.syncNowBtn, els.testBackupBtn, els.createBackupBtn, els.retryBackupBtn]) if (element) element.disabled = busy;
+        if (els.syncNowBtn) els.syncNowBtn.textContent = busy ? 'Working…' : 'Sync now';
+      }
+      function setCloudError(error, announce = false) {
+        backupStatus.cloud = 'error';
+        backupStatus.message = error?.message || 'Cloud backup failed. Try again.';
+        setSetupFeedback(backupStatus.message, true);
+        updateBackupStatus();
+        if (announce) toast(backupStatus.message, 'error');
+      }
+      async function githubRequest(path, config, options = {}) {
+        if (!config.pat) throw new Error('Enter your GitHub access token first.');
+        if (Date.now() < githubRetryAt) throw new Error(`GitHub is limiting requests. Try again after ${new Date(githubRetryAt).toLocaleTimeString()}.`);
+        const method = options.method || 'GET';
+        if (method !== 'GET') {
+          const delay = 1000 - (Date.now() - lastGithubWriteAt);
+          if (delay > 0) await sleep(delay);
+          if (!sameConfig(config)) throw new Error('Backup settings changed. Try again with the new settings.');
+          lastGithubWriteAt = Date.now();
+        }
+        let response;
         try {
-          const cloud = await pullFromCloud();
-          const cloudShows = savedShows(cloud),
-            localShows = state.shows || [];
-          if (!cloud || !cloudShows.length) {
-            dismissToast(progressToast);
-            progressToast = null;
-            if (lastCloudPullFailed && toastErrors) toast("Cloud unavailable", "error");
-            else if (toastResults) toast("Cloud checked");
-            return;
+          response = await fetch('https://api.github.com' + path, {
+            method, cache: 'no-store', signal: timeoutSignal(15000),
+            headers: { Accept: 'application/vnd.github+json', Authorization: `Bearer ${config.pat}`, ...(options.body ? { 'Content-Type': 'application/json' } : {}) },
+            ...(options.body ? { body: JSON.stringify(options.body) } : {}),
+          });
+        } catch {
+          throw new Error('Could not reach GitHub. Check your connection and retry backup.');
+        }
+        if (!response.ok) {
+          let detail = '';
+          try { detail = String((await response.json()).message || ''); } catch {}
+          if (response.status === 401) throw new Error('GitHub token expired or is invalid. Replace it in backup settings.');
+          if (response.status === 429 || (response.status === 403 && (response.headers.get('retry-after') || response.headers.get('x-ratelimit-remaining') === '0' || /rate limit|abuse/i.test(detail)))) {
+            const reset = Number(response.headers.get('x-ratelimit-reset')) * 1000;
+            githubRetryAt = Math.max(Date.now() + retryAfterMilliseconds(response.headers.get('retry-after'), 60000), Number.isFinite(reset) ? reset : 0);
+            throw new Error(`GitHub is limiting requests. Try again after ${new Date(githubRetryAt).toLocaleTimeString()}.`);
           }
-          if (!localShows.length) {
-            applyState(preserveLocalEmbeddedCovers(cloud));
-            await persistState(clonePlain(state));
-            render();
-            dismissToast(progressToast);
-            progressToast = null;
-            if (toastResults) toast("Hydrated from Cloud");
-            return;
+          if (response.status === 403) throw new Error('GitHub denied access. Check that the token has Gist write permission.');
+          if (response.status === 404) throw new Error('Backup not found. Check the Gist ID and the account owning your token.');
+          throw new Error(`GitHub could not complete the request (HTTP ${response.status}). Try again.`);
+        }
+        return response.json();
+      }
+      function readGistResult(gist) {
+        const file = gist.files?.['state.json'];
+        if (!file) throw new Error('This Gist has no state.json file. Choose your library backup or create a new backup.');
+        if (file.truncated) throw new Error('This backup is too large to read safely. Download its full state.json from GitHub and import it.');
+        let data;
+        try { data = JSON.parse(file.content); } catch { throw new Error('The backup contains invalid JSON. Use Restore previous backup to recover an earlier copy.'); }
+        validateBackup(data);
+        return { data, revision: gist.history?.[0]?.version || null, updatedAt: gist.updated_at || data?.updatedAt || null };
+      }
+      async function readRemoteBackup(config, revision = '') {
+        return readGistResult(await githubRequest('/gists/' + encodeURIComponent(config.gid) + (revision ? '/' + encodeURIComponent(revision) : ''), config));
+      }
+      function rememberSynced(config, hash, remote, unchanged = true) {
+        if (!sameConfig(config)) return;
+        syncMeta = { baseHash: hash, baseRevision: remote.revision || null, lastBackupAt: remote.updatedAt || new Date().toISOString(), lastCheckedAt: new Date().toISOString() };
+        setLocal(SYNC_META_KEY + config.gid, JSON.stringify(syncMeta));
+        pendingCloudConflict = null;
+        backupStatus.cloud = unchanged ? 'ok' : 'pending';
+        backupStatus.message = '';
+        updateBackupStatus();
+      }
+      async function recoveryRecords() {
+        try {
+          const records = await idbGet(await openBoardDb(), RECOVERY_KEY);
+          if (Array.isArray(records)) return records;
+        } catch {}
+        const fallback = parseMaybeJson(getLocal(RECOVERY_KEY));
+        return Array.isArray(fallback) ? fallback : [];
+      }
+      function keepRecoveryCopy(reason, snapshot = clonePlain(state)) {
+        const run = async () => {
+          const entry = { id: uuid(), createdAt: new Date().toISOString(), reason, snapshot };
+          const records = [entry, ...await recoveryRecords()].slice(0, RECOVERY_LIMIT);
+          try {
+            await idbPut(await openBoardDb(), records, RECOVERY_KEY);
+            return true;
+          } catch {
+            const small = records.slice();
+            while (small.length > 1 && byteSize(JSON.stringify(small)) > MAX_CLOUD_SYNC_BYTES) small.pop();
+            if (setLocal(RECOVERY_KEY, JSON.stringify(small))) return true;
           }
-          const cloudTime = getStateTimestamp(cloud),
-            localTime = getStateTimestamp(state),
-            skew = 2000;
-          if (cloudTime > localTime + skew) {
-            applyState(preserveLocalEmbeddedCovers(cloud));
-            await persistState(clonePlain(state));
-            render();
-            dismissToast(progressToast);
-            progressToast = null;
-            if (toastResults) toast("Pulled new Cloud Version");
-          } else {
-            dismissToast(progressToast);
-            progressToast = null;
-            if (toastResults) toast("Cloud is up to date");
+          throw new Error('A recovery copy could not be saved. Export your data before replacing the library.');
+        };
+        const task = recoveryQueue.catch(() => {}).then(run);
+        recoveryQueue = task;
+        return task;
+      }
+      function summaryHtml(data, label, date = data?.exportedAt || data?.updatedAt) {
+        const shows = savedShows(data), folders = data?.groups?.length || 0;
+        const saved = Number.isFinite(Date.parse(date || '')) ? `<small>Saved ${escapeHtml(new Date(date).toLocaleString())}</small>` : '';
+        const examples = shows.slice(0, 3).map((s) => showTitle(s)).filter(Boolean).join(', ');
+        return `<div><strong>${escapeHtml(label)}</strong><small>${shows.length} ${shows.length === 1 ? 'show' : 'shows'} · ${folders} ${folders === 1 ? 'folder' : 'folders'}</small>${saved}${examples ? `<small>${escapeHtml(examples)}${shows.length > 3 ? '…' : ''}</small>` : ''}</div>`;
+      }
+      function openBackupDialog(title, body, actions = []) {
+        dialogSerial += 1;
+        els.backupDialogTitle.textContent = title;
+        els.backupDialogBody.innerHTML = body;
+        els.backupDialogActions.replaceChildren();
+        actions.forEach(({ label, primary, danger, run }) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'btn' + (primary ? ' primary' : '') + (danger ? ' danger' : '');
+          button.textContent = label;
+          button.addEventListener('click', async () => {
+            button.disabled = true;
+            try { await run(); }
+            catch (error) { toast(error.message || 'Could not complete that action.', 'error'); }
+            finally { button.disabled = false; }
+          });
+          els.backupDialogActions.append(button);
+        });
+        if (!els.backupDialog.open) els.backupDialog.showModal();
+        return dialogSerial;
+      }
+      function closeBackupDialog() { dialogSerial += 1; els.backupDialog.close(); }
+      function flagCloudConflict(remote, config, interactive = false) {
+        if (!sameConfig(config)) return false;
+        pendingCloudConflict = { remote, config };
+        backupStatus.cloud = 'conflict';
+        updateBackupStatus();
+        if (interactive) reviewCloudConflict();
+        return false;
+      }
+      function reviewCloudConflict() {
+        if (!pendingCloudConflict) return;
+        const { remote, config } = pendingCloudConflict;
+        const signature = dataSignature(state);
+        openBackupDialog('Choose which copy to use',
+          `<p>Your device and GitHub contain different library data. Choose a copy to continue. A recovery copy is kept before anything is replaced.</p><div class="backup-summary">${summaryHtml(state, 'This device')}${summaryHtml(remote.data, 'GitHub', remote.updatedAt)}</div><p class="hint">You can download this device’s data before deciding. Choosing this device replaces the current cloud copy; choosing GitHub replaces this device’s library.</p>`, [
+            { label: 'Download this device', run: () => exportJson() },
+            { label: 'Use GitHub copy', run: () => resolveCloudConflict('cloud', remote, config, signature) },
+            { label: 'Use this device', primary: true, run: () => resolveCloudConflict('local', remote, config, signature) },
+          ]);
+      }
+      async function resolveCloudConflict(choice, remote, config, signature) {
+        if (!sameConfig(config) || signature !== dataSignature(state)) {
+          toast('Your library or settings changed. Review the copies again.', 'error');
+          if (pendingCloudConflict) reviewCloudConflict();
+          return;
+        }
+        const expectedCloudHash = await fingerprint(remote.data);
+        if (signature !== dataSignature(state)) return reviewCloudConflict();
+        closeBackupDialog();
+        await requestCloudSync({ interactive: true, choice, expectedCloudHash, expectedLocalSignature: signature });
+      }
+      async function acceptCloudCopy(remote, config, hash, signature) {
+        if (hasStoredLibrary || state.shows.length || state.groups.length)
+          await keepRecoveryCopy('Before loading a cloud copy');
+        if (!sameConfig(config) || signature !== dataSignature(state)) { scheduleCloudSync(); return false; }
+        savePreferences();
+        applyState(preserveLocalEmbeddedCovers(remote.data));
+        localChangeSerial += 1;
+        lastObservedData = dataSignature(state);
+        const acceptedSignature = lastObservedData;
+        backupStatus.local = 'saving';
+        saveLightweightFallback(state);
+        await queueLocalSave(clonePlain(state), localChangeSerial);
+        rememberSynced(config, hash, remote, acceptedSignature === dataSignature(state));
+        if (acceptedSignature !== dataSignature(state)) scheduleCloudSync();
+        render();
+        return true;
+      }
+      async function syncCloudOnce(config, options) {
+        if (!sameConfig(config)) return false;
+        if (pendingCloudConflict && !options.interactive && !options.choice) return false;
+        backupStatus.cloud = 'checking';
+        updateBackupStatus();
+        const remote = await readRemoteBackup(config);
+        const remoteHash = await fingerprint(remote.data);
+        if (!sameConfig(config)) return false;
+        const snapshot = libraryData(state), signature = dataSignature(state);
+        const localHash = await fingerprint(snapshot);
+        if (!sameConfig(config) || signature !== dataSignature(state)) { scheduleCloudSync(); return false; }
+        if (options.choice && (remoteHash !== options.expectedCloudHash || signature !== options.expectedLocalSignature))
+          return flagCloudConflict(remote, config, true);
+        if (localHash === remoteHash) {
+          rememberSynced(config, remoteHash, remote);
+          if (options.interactive) toast('Cloud backup is up to date.');
+          return true;
+        }
+        const base = syncMeta.baseHash;
+        const canLoad = options.choice === 'cloud' || (!options.choice && ((base && localHash === base) || (!base && !hasStoredLibrary && !state.shows.length && !state.groups.length)));
+        if (canLoad) {
+          const ok = await acceptCloudCopy(remote, config, remoteHash, signature);
+          if (ok && options.interactive) toast('Loaded the cloud copy.');
+          return ok;
+        }
+        const canUpload = options.choice === 'local' || (!options.choice && base && remoteHash === base);
+        if (!canUpload) return flagCloudConflict(remote, config, options.interactive);
+        if (options.choice === 'local') await keepRecoveryCopy('Cloud copy before choosing this device', remote.data);
+        if (!sameConfig(config) || signature !== dataSignature(state)) { scheduleCloudSync(); return false; }
+        const payload = JSON.stringify(snapshot);
+        if (byteSize(payload) > MAX_CLOUD_SYNC_BYTES)
+          throw new Error('Cloud backup is over the 900 KB limit. Export your data to keep a separate backup.');
+        backupStatus.cloud = 'saving';
+        updateBackupStatus();
+        // Gist PATCH has no compare-and-swap. Recheck immediately before writing;
+        // this detects intervening edits, but cannot make multi-device writes atomic.
+        const wait = 1000 - (Date.now() - lastGithubWriteAt);
+        if (wait > 0) await sleep(wait);
+        const latest = await readRemoteBackup(config);
+        if (await fingerprint(latest.data) !== remoteHash) return flagCloudConflict(latest, config, options.interactive);
+        if (!sameConfig(config) || signature !== dataSignature(state)) { scheduleCloudSync(); return false; }
+        const result = await githubRequest('/gists/' + encodeURIComponent(config.gid), config, {
+          method: 'PATCH', body: { files: { 'state.json': { content: payload } } },
+        });
+        const unchanged = signature === dataSignature(state);
+        rememberSynced(config, localHash, { revision: result.history?.[0]?.version, updatedAt: result.updated_at }, unchanged);
+        if (!unchanged) scheduleCloudSync();
+        if (options.interactive && sameConfig(config)) toast('Cloud backup saved.');
+        return true;
+      }
+      function requestCloudSync(options = {}) {
+        clearTimeout(cloudSyncTimer);
+        let config;
+        try {
+          config = cloudConfig();
+          if (!config.pat || !config.gid) {
+            if (options.interactive) setSetupFeedback('Enter your token and Gist URL, or create a new backup.', true);
+            return Promise.resolve(false);
           }
-        } finally {
-          dismissToast(progressToast);
-          setStatus("System Ready");
+        } catch (error) { setCloudError(error, options.interactive); return Promise.resolve(false); }
+        const task = async () => {
+          if (!sameConfig(config)) return false;
+          cloudBusyCount += 1;
+          updateBackupStatus();
+          try {
+            const run = () => syncCloudOnce(config, options);
+            return globalThis.navigator?.locks
+              ? await navigator.locks.request('archived-releases-gist-' + config.gid, run)
+              : await run();
+          } catch (error) {
+            if (sameConfig(config)) setCloudError(error, options.interactive);
+            return false;
+          } finally {
+            cloudBusyCount -= 1;
+            updateBackupStatus();
+          }
+        };
+        cloudQueue = cloudQueue.catch(() => false).then(task);
+        return cloudQueue;
+      }
+      function pushToCloud(_snapshot, { toastOnError = false } = {}) {
+        return requestCloudSync({ interactive: toastOnError });
+      }
+      function autoCloud({ announce = false } = {}) {
+        return requestCloudSync({ interactive: false, announce });
+      }
+      function pullAndSync() {
+        if (!saveSyncSettings()) return Promise.resolve(false);
+        save();
+        return requestCloudSync({ interactive: true });
+      }
+      async function testBackupConnection() {
+        if (!saveSyncSettings()) return;
+        let config;
+        try {
+          config = cloudConfig();
+          if (!config.gid) throw new Error('Paste your Gist URL or create a new backup.');
+          const remote = await readRemoteBackup(config);
+          if (!sameConfig(config)) return;
+          if (backupStatus.cloud === 'error') { backupStatus.cloud = 'unchecked'; backupStatus.message = ''; updateBackupStatus(); }
+          setSetupFeedback(`Connected. Backup contains ${savedShows(remote.data).length} shows. Sync now to compare your copies. Read access verified; write access is checked on the next save.`);
+        } catch (error) {
+          if (config && sameConfig(config) && hasCloudCredentials()) setCloudError(error);
+          else setSetupFeedback(error.message, true);
         }
       }
-      async function pullAndSync() {
+      function createCloudBackup() {
+        cloudQueue = cloudQueue.catch(() => false).then(createCloudBackupNow);
+        return cloudQueue;
+      }
+      async function createCloudBackupNow() {
+        if (!saveSyncSettings()) return;
+        const config = cloudConfig();
+        if (!config.pat) { setSetupFeedback('Enter a GitHub token with Gist write access first.', true); return; }
+        cloudBusyCount += 1;
+        creatingCloudBackup = true;
+        updateBackupStatus();
         try {
-          els.syncNowBtn.disabled = true;
-          els.syncNowBtn.textContent = "Syncing...";
-          const cloud = await pullFromCloud();
-          if (lastCloudPullFailed) {
-            toast("Cloud unavailable", "error");
-            setStatus("Sync Failed", "error");
+          save();
+          const snapshot = libraryData(state), signature = dataSignature(state);
+          const hash = await fingerprint(snapshot), payload = JSON.stringify(snapshot);
+          if (byteSize(payload) > MAX_CLOUD_SYNC_BYTES) throw new Error('This library is over the 900 KB cloud limit. Export data to keep a separate backup.');
+          const result = await githubRequest('/gists', config, {
+            method: 'POST', body: { description: 'Archived Releases backup', public: false, files: { 'state.json': { content: payload } } },
+          });
+          const gid = normalizeGistId(result.id);
+          if (!sameConfig(config)) {
+            setSetupFeedback('Backup created. Settings changed while it was saving; find the new backup in your GitHub Gists.', true);
             return;
           }
-          const cloudShows = savedShows(cloud),
-            localShows = state.shows || [];
-          if (cloud && cloudShows.length && !localShows.length) {
-            applyState(preserveLocalEmbeddedCovers(cloud));
-            save();
-            render();
-            toast("Hydrated from Cloud");
-          } else if (cloud && cloudShows.length && localShows.length) {
-            const cloudTime = getStateTimestamp(cloud),
-              localTime = getStateTimestamp(state),
-              skew = 2000;
-            if (cloudTime > localTime + skew) {
-              applyState(preserveLocalEmbeddedCovers(cloud));
-              save();
-              render();
-              toast("Pulled new Cloud Version");
-            } else if (localTime > cloudTime + skew) {
-              if (await pushToCloud(state)) toast("Updated Cloud Version");
-              else toast("Cloud save failed", "error");
-            } else {
-              toast("Cloud is up to date");
-              setStatus("System Ready");
-            }
-          } else if (localShows.length) {
-            if (await pushToCloud(state)) toast("Updated Cloud Version");
-            else toast("Cloud save failed", "error");
-          } else {
-            toast("Both cloud and local are empty.", "error");
-            setStatus("System Ready");
-          }
-        } finally {
-          els.syncNowBtn.disabled = false;
-          els.syncNowBtn.textContent = "Pull & Sync";
+          els.gistId.value = gid;
+          if (!saveSyncSettings()) return;
+          const connected = cloudConfig();
+          rememberSynced(connected, hash, { revision: result.history?.[0]?.version, updatedAt: result.updated_at }, signature === dataSignature(state));
+          setSetupFeedback('New backup created and connected. Use Open backup to view state.json.');
+          if (signature !== dataSignature(state)) scheduleCloudSync();
+          toast('Cloud backup created.');
+        } catch (error) { if (sameConfig(config)) setCloudError(error, true); }
+        finally {
+          creatingCloudBackup = false;
+          cloudBusyCount -= 1;
+          if (backupStatus.cloud === 'pending') scheduleCloudSync();
+          updateBackupStatus();
         }
+      }
+      async function showBackupHistory() {
+        const ticket = openBackupDialog('Restore previous backup', '<p class="hint">Loading recovery copies…</p>');
+        const records = await recoveryRecords();
+        const choices = records.map((r) => ({ ...r, source: 'This device', load: async () => r.snapshot }));
+        let cloudMessage = 'Connect a cloud backup to browse GitHub history.';
+        if (hasCloudCredentials()) {
+          const config = cloudConfig();
+          try {
+            const commits = await githubRequest('/gists/' + encodeURIComponent(config.gid) + '/commits?per_page=20', config);
+            if (!Array.isArray(commits)) throw new Error('GitHub returned an unexpected history response.');
+            commits.forEach((commit) => choices.push({
+              id: commit.version, createdAt: commit.committed_at, reason: 'Cloud backup', source: 'GitHub',
+              load: async () => (await readRemoteBackup(config, commit.version)).data,
+            }));
+            cloudMessage = commits.length ? 'Choose Preview to check a copy before restoring.' : 'No cloud history is available yet.';
+          } catch (error) { cloudMessage = error.message; }
+        }
+        if (ticket !== dialogSerial || !els.backupDialog.open) return;
+        choices.sort((a, b) => Date.parse(b.createdAt || '') - Date.parse(a.createdAt || ''));
+        els.backupDialogBody.innerHTML = `<p class="hint">${escapeHtml(cloudMessage)}</p><div class="recovery-list">${choices.map((r, index) => `<div class="recovery-row"><div><strong>${escapeHtml(r.reason)}</strong><small>${escapeHtml(r.source)} · ${escapeHtml(new Date(r.createdAt).toLocaleString())}${r.snapshot ? ' · ' + savedShows(r.snapshot).length + ' shows' : ''}</small></div><button class="btn compact" type="button" data-recovery-index="${index}">Preview</button></div>`).join('') || '<p>No recovery copies yet. Copies are kept before imports, restores, and library replacements.</p>'}</div>`;
+        els.backupDialogBody.querySelectorAll('[data-recovery-index]').forEach((button) => button.addEventListener('click', async () => {
+          button.disabled = true;
+          try {
+            const choice = choices[Number(button.dataset.recoveryIndex)];
+            const data = validateBackup(clonePlain(await choice.load()));
+            if (ticket !== dialogSerial) return;
+            previewLibraryReplacement(data, 'Restore backup', 'Restore this copy', 'replace');
+          } catch (error) { toast(error.message, 'error'); }
+          finally { button.disabled = false; }
+        }));
+      }
+      function previewLibraryReplacement(data, title, actionLabel, mode = 'replace') {
+        validateBackup(data);
+        const signature = dataSignature(state);
+        openBackupDialog(title,
+          `<p>${mode === 'merge' ? 'Merge this backup into your library.' : 'Replace your current library with this copy.'} A recovery copy of this device is kept first.</p><div class="backup-summary">${summaryHtml(state, 'Current library')}${summaryHtml(data, 'Selected backup')}</div><p class="hint">${mode === 'merge' ? 'Matching shows will be combined; imported notes are preserved.' : 'Shows absent from the selected backup will be removed from the current library.'}</p>`, [
+            { label: 'Cancel', run: closeBackupDialog },
+            { label: actionLabel, primary: true, run: async () => {
+              if (signature !== dataSignature(state)) {
+                toast('Your library changed. Review the updated counts before continuing.', 'error');
+                return previewLibraryReplacement(data, title, actionLabel, mode);
+              }
+              await keepRecoveryCopy('Before ' + title.toLowerCase());
+              if (signature !== dataSignature(state)) return previewLibraryReplacement(data, title, actionLabel, mode);
+              savePreferences();
+              if (mode === 'merge') mergeStateData(clonePlain(data));
+              else applyState(clonePlain(data));
+              closeBackupDialog();
+              render();
+              const saved = await save();
+              if (saved) toast(mode === 'merge' ? 'Backup merged. Recovery copy kept.' : 'Library replaced. Recovery copy kept.');
+            } },
+          ]);
       }
 
 
@@ -2118,18 +2651,21 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           ok,
           text: ok
             ? "Cloud backup saved."
-            : "Cloud backup failed. Local changes are still saved on this device.",
+            : pendingCloudConflict
+              ? "Cloud sync paused: review the two copies before continuing."
+              : "Cloud backup needs attention. Check the backup status above.",
         };
       }
       function setReleaseRefreshUi(running, label = "Refreshing") {
         if (els.refreshReleasesBtn) {
           els.refreshReleasesBtn.disabled = running;
-          els.refreshReleasesBtn.textContent = running ? label + "..." : "Refresh Stale";
+          els.refreshReleasesBtn.textContent = running ? label + "..." : "Check releases";
         }
         if (els.refreshAllReleasesBtn) {
           els.refreshAllReleasesBtn.disabled = running;
-          els.refreshAllReleasesBtn.textContent = running ? "Queued..." : "Full Refresh";
+          els.refreshAllReleasesBtn.textContent = running ? "Queued..." : "Recheck all releases";
         }
+        if (els.quickCheckReleasesBtn) els.quickCheckReleasesBtn.disabled = running;
         if (els.cancelReleaseRefreshBtn) {
           els.cancelReleaseRefreshBtn.hidden = !running;
           els.cancelReleaseRefreshBtn.disabled = !running;
@@ -2777,8 +3313,16 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         const release = defaultRelease(s?.releasesMoe);
         return release.latestUpdated || release.updated || null;
       }
+      function compareUpdateDates(a, b) {
+        const aTime = releaseTimestamp(a),
+          bTime = releaseTimestamp(b),
+          aValid = Number.isFinite(aTime),
+          bValid = Number.isFinite(bTime);
+        if (aValid !== bValid) return aValid ? -1 : 1;
+        return aValid ? bTime - aTime : 0;
+      }
       function formatUpdateDate(v) {
-        const d = new Date(v || "");
+        const d = new Date(releaseTimestamp(v));
         if (!Number.isFinite(d.getTime())) return "";
         const options = { month: "short", day: "numeric" };
         if (d.getFullYear() !== new Date().getFullYear()) options.year = "numeric";
@@ -2789,7 +3333,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         }
       }
       function formatUpdateTooltip(v) {
-        const d = new Date(v || "");
+        const d = new Date(releaseTimestamp(v));
         if (!Number.isFinite(d.getTime())) return "Update date unavailable";
         let full;
         try {
@@ -2817,7 +3361,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           const release = defaultRelease(s?.releasesMoe);
           if (!release.updateAvailable) return;
           const value = releaseUpdateAt(s);
-          const time = Date.parse(value || "");
+          const time = releaseTimestamp(value);
           if (Number.isFinite(time) && time > newestTime) {
             newest = value;
             newestTime = time;
@@ -2891,15 +3435,16 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
       function updateLibraryUpdateIndicator() {
         const updates = updatedLibraryShows().length;
         if (els.filterUpdatedBtn) {
-          els.filterUpdatedBtn.hidden = updates < 1;
+          els.filterUpdatedBtn.hidden = false;
+          els.filterUpdatedBtn.textContent = `Updated (${updates})`;
+          els.filterUpdatedBtn.title = `${updates} pending updates, newest first`;
           els.filterUpdatedBtn.setAttribute(
             "aria-label",
             updates === 1
-              ? "Show the 1 archived show with a pending update"
-              : `Show the ${updates} archived shows with pending updates`,
+              ? "Show the 1 archived show with a pending update, newest first"
+              : `Show the ${updates} archived shows with pending updates, newest first`,
           );
         }
-        if (!updates && state.ui.filterUpdated) state.ui.filterUpdated = false;
         return updates;
       }
       function toastLibraryUpdates({ force = false } = {}) {
@@ -3089,6 +3634,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           "active",
           !!state.ui.filterUpdated,
         );
+        if (els.updatesSortLabel) els.updatesSortLabel.hidden = !state.ui.filterUpdated;
       }
       function render() {
         reconcile();
@@ -3134,18 +3680,39 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           els.downloadedCount,
         );
         updateButtons();
+        updateBackupStatus();
       }
       function renderBoard(board, shows, list, count) {
         if (!list || !count) return;
         count.textContent = shows.length;
+        const updatedView = board === "downloaded" && state.ui.filterUpdated;
+        if (updatedView && !shows.length) {
+          list.innerHTML = `<div class="empty">${state.localSearch ? 'No pending updates match your search.' : 'No pending updates. You’re all caught up.'}</div>`;
+          return;
+        }
         if (state.localSearch) {
+          const orderedShows = updatedView
+            ? [...shows].sort((a, b) => compareUpdateDates(releaseUpdateAt(a), releaseUpdateAt(b)))
+            : shows;
           list.innerHTML =
-            shows.map(renderCard).join("") ||
+            orderedShows.map(renderCard).join("") ||
             `<div class="empty">${board === "downloaded" ? "Library is empty." : board === "found" ? "No matching releases found yet." : "All caught up."}</div>`;
           return;
         }
+        const orderedIds = [...state.order[board]];
+        if (updatedView) {
+          // Rank folders by their newest visible pending update without changing saved order.
+          const updateDates = new Map();
+          shows.forEach((s) => {
+            const id = s.groupId || s.id,
+              date = releaseUpdateAt(s);
+            if (!updateDates.has(id) || compareUpdateDates(date, updateDates.get(id)) < 0)
+              updateDates.set(id, date);
+          });
+          orderedIds.sort((a, b) => compareUpdateDates(updateDates.get(a), updateDates.get(b)));
+        }
         const html = [];
-        state.order[board].forEach((id) => {
+        orderedIds.forEach((id) => {
           const g = groupById(id),
             s = byId(id);
           if (g) {
@@ -3159,14 +3726,15 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           `<div class="empty">${board === "downloaded" ? "Library is empty." : board === "found" ? "No matching releases found yet." : "All caught up."}</div>`;
       }
       function renderFolder(g, kids) {
-        sortGroup(g.id);
         const allKids = folderChildren(g.id);
         const allOrdered = (state.groupOrder[g.id] || [])
           .map((id) => allKids.find((s) => s.id === id))
-          .filter(Boolean);
+          .filter(Boolean).sort(compareFolder);
         const ordered = (state.groupOrder[g.id] || [])
           .map((id) => kids.find((s) => s.id === id))
-          .filter(Boolean);
+          .filter(Boolean).sort(compareFolder);
+        if (state.ui.filterUpdated)
+          ordered.sort((a, b) => compareUpdateDates(releaseUpdateAt(a), releaseUpdateAt(b)));
         const first = allOrdered[0] || ordered[0];
         const cover = first?.coverImage || "";
         const complete = allKids.filter((s) => s.allAvailableDownloaded).length;
@@ -3387,7 +3955,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         const c = e.target.closest("[data-comment-id]");
         if (c) {
           const s = byId(c.dataset.commentId);
-          if (s) s.comments = c.value;
+          if (s) { s.comments = c.value; s.updatedAt = new Date().toISOString(); }
           clearTimeout(commentTimers.get(c.dataset.commentId));
           commentTimers.set(c.dataset.commentId, setTimeout(save, 500));
           return;
@@ -3395,7 +3963,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         const g = e.target.closest("[data-group-name]");
         if (g) {
           const group = groupById(g.dataset.groupName);
-          if (group) group.name = g.value;
+          if (group) { group.name = g.value; group.updatedAt = new Date().toISOString(); }
           clearTimeout(groupNameTimers.get(g.dataset.groupName));
           groupNameTimers.set(g.dataset.groupName, setTimeout(save, 500));
         }
@@ -3467,8 +4035,6 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           s.releasesMoe.latestUpdated = null;
         }
         s.releasesMoe.updateAvailable = false;
-        if (!updatedLibraryShows().some((show) => show.id !== s.id))
-          state.ui.filterUpdated = false;
         render();
         save();
         toast("Update acknowledged.");
@@ -3641,8 +4207,8 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
       }
       function exportJson() {
         reconcile();
-        downloadJson("anilist-releases-board.json", stripEmbedded(state));
-        toast("Exported lightweight JSON");
+        downloadJson("anilist-releases-board.json", libraryData(state));
+        toast("Exported library data");
       }
       function isDataUrl(v) {
         return typeof v === "string" && v.startsWith("data:");
@@ -3672,7 +4238,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
       }
       async function makePortableArchive() {
         reconcile();
-        const portable = clonePlain(state);
+        const portable = { ...libraryData(state), shows: clonePlain(state.shows) };
         portable.portableArchive = true;
         portable.archiveVersion = 1;
         portable.exportedAt = new Date().toISOString();
@@ -3710,7 +4276,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           toast("Portable export failed.", "error");
         } finally {
           els.portableExportBtn.disabled = false;
-          els.portableExportBtn.textContent = "Export Portable Archive";
+          els.portableExportBtn.textContent = "Export with covers";
           setStatus("System Ready");
         }
       }
@@ -3856,34 +4422,18 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         const f = e.target.files?.[0];
         if (!f) return;
         try {
-          const data = prepareImportedData(JSON.parse(await f.text()));
+          const data = prepareImportedData(validateBackup(JSON.parse(await f.text())));
           const mode = els.importMode?.value || "replace";
-          if (mode === "merge") {
-            mergeStateData(data);
-            toast("Merged import successfully");
-          } else {
-            applyState(data);
-            toast("Imported successfully");
-          }
-          render();
-          save();
+          previewLibraryReplacement(data, "Import data", mode === "merge" ? "Merge into library" : "Replace library", mode);
         } catch (err) {
           console.warn(err);
-          toast("Import failed", "error");
+          toast("Import failed: " + (err.message || "Invalid backup file"), "error");
         } finally {
           e.target.value = "";
         }
       }
       function clearBoard() {
-        if (!confirm("Nuke everything?")) return;
-        state.shows = [];
-        state.groups = [];
-        state.groupOrder = {};
-        state.order = defaultOrder();
-        state.ui.openNotes = {};
-        render();
-        save();
-        toast("Board cleared");
+        previewLibraryReplacement({ shows: [], groups: [], groupOrder: {}, order: defaultOrder() }, "Clear library", "Clear library", "replace");
       }
 
       function updateAddMode() {
@@ -3922,12 +4472,14 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         });
 
         document.addEventListener("visibilitychange", () => {
-          if (document.visibilityState === "visible")
-            runAutoReleaseCheck({ announce: true });
+          if (document.visibilityState === "visible") resumeCloudAndReleases();
+          else save();
         });
         window.addEventListener("pageshow", (e) => {
-          if (e.persisted) runAutoReleaseCheck({ announce: true });
+          if (e.persisted) resumeCloudAndReleases();
         });
+        window.addEventListener("online", () => requestCloudSync());
+        window.addEventListener("pagehide", () => save());
         
         els.tabs.forEach((tab) =>
           on(tab, "click", () => {
@@ -4032,7 +4584,6 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
           save();
         });
         on(els.filterUpdatedBtn, "click", () => {
-          if (!updatedLibraryShows().length) return;
           state.ui.filterComplete = false;
           state.ui.filterIncomplete = false;
           state.ui.filterUpdated = true;
@@ -4056,6 +4607,7 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         on(els.smartGroupBtn, "click", smartGroup);
         on(els.regenerateAniListBtn, "click", regenerateAll);
         on(els.refreshReleasesBtn, "click", () => runAutoReleaseCheck({ announce: true, force: true, manual: true }));
+        on(els.quickCheckReleasesBtn, "click", () => runAutoReleaseCheck({ announce: true, force: true, manual: true }));
         on(els.refreshAllReleasesBtn, "click", refreshAllReleases);
         on(els.testReleasesApiBtn, "click", testReleasesApi);
         on(els.cancelReleaseRefreshBtn, "click", requestReleaseRefreshCancel);
@@ -4069,6 +4621,14 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         on(els.gistId, "change", saveSyncSettings);
         on(els.gistId, "blur", saveSyncSettings);
         on(els.syncNowBtn, "click", pullAndSync);
+        on(els.retryBackupBtn, "click", pullAndSync);
+        on(els.reviewConflictBtn, "click", reviewCloudConflict);
+        on(els.testBackupBtn, "click", testBackupConnection);
+        on(els.createBackupBtn, "click", createCloudBackup);
+        on(els.backupHistoryBtn, "click", showBackupHistory);
+        on(els.closeBackupDialogBtn, "click", closeBackupDialog);
+        on(els.backupDialog, "cancel", () => { dialogSerial += 1; });
+        on(els.backupDialog, "close", () => { dialogSerial += 1; });
         on(els.closeExploreBtn, "click", () =>
           els.exploreModal.classList.remove("open"),
         );
@@ -4174,6 +4734,11 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
         });
       }
 
+      async function resumeCloudAndReleases() {
+        if (!workingStorageReady) return;
+        await autoCloud();
+        if (!pendingCloudConflict && backupStatus.cloud !== 'error') await runAutoReleaseCheck({ announce: true });
+      }
       function init() {
         try {
           loadSyncSettings();
@@ -4203,6 +4768,8 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
               console.warn(e);
               setStatus("System Ready");
             }
+            workingStorageReady = true;
+            updateBackupStatus();
             try {
               if (hasCloudCredentials()) setActivityLabel("Pulling from Cloud...");
               await autoCloud({ announce: true, toastResults: true, toastErrors: true });
@@ -4212,7 +4779,8 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
             }
             try {
               setActivityLabel("Checking releases...");
-              await runAutoReleaseCheck({ announce: true, force: false });
+              if (!pendingCloudConflict && backupStatus.cloud !== 'error')
+                await runAutoReleaseCheck({ announce: true, force: false });
             } catch (e) {
               console.warn(e);
               setStatus("System Ready");

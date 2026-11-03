@@ -324,18 +324,6 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
       </div>
     </header>
 
-    <section class="backup-strip" id="backupStrip" data-state="starting">
-      <div class="backup-strip-copy" aria-live="polite" aria-atomic="true">
-        <strong id="localBackupStatus">Loading saved library…</strong>
-        <span id="cloudBackupStatus">Cloud backup is not connected</span>
-      </div>
-      <div class="mini-actions">
-        <button class="btn compact" id="retryBackupBtn" type="button" hidden>Retry backup</button>
-        <button class="btn compact primary" id="reviewConflictBtn" type="button" hidden>Review changes</button>
-        <button class="btn compact" id="quickCheckReleasesBtn" type="button">Check releases</button>
-      </div>
-    </section>
-
     <section class="boards" id="boards">
       <div class="tab-view active" id="view-active">
         <div class="active-boards">
@@ -518,6 +506,18 @@ h1 { margin: 0; font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -.04em; line-
             </details>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="backup-strip" id="backupStrip" data-state="starting">
+      <div class="backup-strip-copy" aria-live="polite" aria-atomic="true">
+        <strong id="localBackupStatus">Loading saved library…</strong>
+        <span id="cloudBackupStatus">Cloud backup is not connected</span>
+      </div>
+      <div class="mini-actions">
+        <button class="btn compact" id="retryBackupBtn" type="button" hidden>Retry backup</button>
+        <button class="btn compact primary" id="reviewConflictBtn" type="button" hidden>Review changes</button>
+        <button class="btn compact" id="quickCheckReleasesBtn" type="button">Check releases</button>
       </div>
     </section>
   </section>

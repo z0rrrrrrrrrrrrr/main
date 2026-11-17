@@ -55,6 +55,7 @@ h3 { font-size: 16px; font-weight: 550; }
 .count.accent { background: var(--brand-fill); color: var(--brand); }
 .nav-actions, .toolbar-actions, .mini-actions, .links-row, .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .nav-actions { padding-bottom: 15px; }
+.collection-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
 .btn, .icon-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 36px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 7px; color: var(--text); background: var(--surface); font-size: 12px; font-weight: 550; text-decoration: none; line-height: 1.4; }
 .btn:hover, .icon-btn:hover { background: var(--surface-softer); }
 .btn.primary { border-color: transparent; background: var(--brand); color: #0b0d13; }
@@ -73,6 +74,12 @@ h3 { font-size: 16px; font-weight: 550; }
 .header-check small { text-align: right; }
 .header-check small { color: var(--muted); font-size: 12px; }
 .toolbar { margin: 18px 0; gap: 12px; }
+.boards { margin-top: 18px; }
+.collection-search-section { border-top: 1px solid var(--line); padding-top: 16px; margin-top: 4px; }
+.search-section-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.search-section-header h3, .catalogue-search-heading { font-size: 13px; font-weight: 550; }
+.catalogue-search-heading { margin-top: 12px; }
+.collection-search-results { display: grid; gap: 3px; }
 .search-field { display: flex; align-items: center; flex: 1; min-width: 0; gap: 9px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); }
 .search-field:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
 .search-field input { width: 100%; min-width: 0; height: 40px; border: none; padding: 0; background: transparent; color: var(--text); outline: none; }
@@ -360,12 +367,12 @@ textarea { resize: vertical; }
         <button class="tab" data-target="view-downloaded" type="button" aria-pressed="false" aria-controls="view-downloaded"><svg class="ui-icon" aria-hidden="true"><use href="#i-library"></use></svg>Library <span class="count" id="libraryTotal">0</span></button>
         <button class="tab" id="filterUpdatedBtn" data-target="view-updates" type="button" aria-pressed="false" aria-controls="view-updates"><svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>Updates <span class="count accent" id="updatesTotal">0</span></button>
       </nav>
-      <div class="nav-actions"><button class="btn quiet icon-btn" id="toggleSettingsBtn" type="button" aria-label="Settings and data" aria-haspopup="dialog"><svg class="ui-icon" aria-hidden="true"><use href="#i-settings"></use></svg></button><button class="btn primary" id="openAddBtn" type="button" aria-haspopup="dialog"><svg class="ui-icon" aria-hidden="true"><use href="#i-plus"></use></svg>Add show</button></div>
+      <div class="nav-actions"><button class="btn quiet icon-btn" id="toggleSettingsBtn" type="button" aria-label="Settings and data" aria-haspopup="dialog"><svg class="ui-icon" aria-hidden="true"><use href="#i-settings"></use></svg></button></div>
     </div>
   </header>
-  <div class="view-header"><div><h2 id="viewTitle" tabindex="-1">Release inbox</h2><p class="view-description" id="viewDescription">Add a show to start monitoring releases.</p></div><div class="header-check"><small id="lastCheckedLabel">No collection check recorded</small><div class="check-actions"><button class="btn quiet" id="checkReleasesBtn" type="button" title="Checks shows due for an update: Tracking after 12 hours, Library after 24 hours."><svg class="ui-icon" aria-hidden="true"><use href="#i-refresh"></use></svg>Check for updates</button><button class="btn quiet" id="retryFailedReleasesBtn" type="button" hidden>Retry failed</button><button class="btn" id="cancelReleaseRefreshBtn" type="button" hidden>Cancel check</button></div></div></div>
+  <div class="view-header"><div><h2 id="viewTitle" tabindex="-1">Release inbox</h2><p class="view-description" id="viewDescription">Use Search below to find and add a title.</p></div><div class="header-check"><small id="lastCheckedLabel">No collection check recorded</small><div class="check-actions"><button class="btn quiet" id="checkReleasesBtn" type="button" title="Checks shows due for an update: Tracking after 12 hours, Library after 24 hours."><svg class="ui-icon" aria-hidden="true"><use href="#i-refresh"></use></svg>Check for updates</button><button class="btn quiet" id="retryFailedReleasesBtn" type="button" hidden>Retry failed</button><button class="btn" id="cancelReleaseRefreshBtn" type="button" hidden>Cancel check</button><select class="sort-select" id="viewSort" aria-label="Sort shows"><option value="custom">Sort: Custom order</option><option value="recent">Sort: Recently added</option><option value="title">Sort: Title A–Z</option></select></div></div></div>
   <div class="release-progress" id="releaseRefreshProgress" hidden role="status" aria-live="polite"></div>
-  <div class="toolbar"><label class="search-field"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg><input type="search" id="boardSearchInput" placeholder="Search tracked shows…" aria-label="Search tracked shows" autocomplete="off"></label><select class="sort-select" id="viewSort" aria-label="Sort shows"><option value="custom">Sort: Custom order</option><option value="recent">Sort: Recently added</option><option value="title">Sort: Title A–Z</option></select></div>
+
   <div class="filter-summary" id="activeFilters" hidden></div>
   <section class="boards" id="boards" aria-label="Your collection">
     <div class="tab-view active" id="view-active"><div class="active-boards">
@@ -375,11 +382,12 @@ textarea { resize: vertical; }
     <div class="tab-view" id="view-downloaded"><div class="library-toolbar"><div class="segmented" aria-label="Library completeness"><button class="segment active" id="filterAllBtn" type="button" aria-pressed="true">All <span class="filter-count" id="allFilterCount">0</span></button><button class="segment" id="filterCompleteBtn" type="button" aria-pressed="false">Complete <span class="filter-count" id="completeFilterCount">0</span></button><button class="segment" id="filterIncompleteBtn" type="button" aria-pressed="false">Missing <span class="filter-count" id="incompleteFilterCount">0</span></button></div><div class="toolbar-actions"><button class="btn quiet compact" id="editOrderBtn" type="button" aria-pressed="false" aria-expanded="false" aria-controls="libraryOrganizeTools">Organize</button></div></div><div class="organize-tools" id="libraryOrganizeTools" hidden><p id="organizeHint">Move shows with the arrows or drag them into a related-show folder.</p><button class="btn compact" id="addFolderBtn" type="button"><svg class="ui-icon" aria-hidden="true"><use href="#i-folder"></use></svg>New folder</button><button class="btn compact" id="smartGroupBtn" type="button">Group related shows</button><button class="btn compact" id="sortLibraryBtn" type="button" title="Saves an alphabetical custom order for your library.">Arrange A–Z</button></div><p class="results-count"><span id="downloadedCount">0</span> of <span id="libraryResultTotal">0</span> shows</p><div class="active-boards downloaded-grid" id="downloadedList"></div></div>
     <div class="tab-view" id="view-updates"><p class="results-count"><span id="updatedCount">0</span> of <span id="updateResultTotal">0</span> pending updates</p><div class="list" id="updatedList"></div></div>
   </section>
+  <div class="collection-actions"><button class="btn quiet" id="openSearchBtn" type="button" aria-haspopup="dialog"><svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg>Search</button></div>
   <footer class="app-footer"><span><svg class="ui-icon" aria-hidden="true"><use href="#i-check"></use></svg>Changes save automatically</span><span id="cloudSummary">Cloud sync is not configured</span></footer>
 </main>
-<dialog class="app-dialog" id="addDialog" aria-labelledby="addDialogTitle"><header class="dialog-head"><div><h2 id="addDialogTitle">Add a show</h2><p>Search by title or paste a link.</p></div><button class="icon-btn" data-close-dialog="addDialog" type="button" aria-label="Close Add show"><svg class="ui-icon" aria-hidden="true"><use href="#i-close"></use></svg></button></header><div class="dialog-body">
-  <div class="segmented add-modes" id="addModeTabs"><button class="segment active" data-add-mode="search" type="button">Search or link</button><button class="segment" data-add-mode="paste" type="button">Bulk paste</button><button class="segment" data-add-mode="manual" type="button">Manual entry</button></div>
-  <div class="add-panel active" id="add-search-panel"><div class="search-row"><label class="field">Title or AniList / SeaDex / MAL link<input class="input" id="searchInput" type="search" autocomplete="off" placeholder="e.g. Frieren or anilist.co/anime/…"></label><button class="btn primary" id="searchBtn" type="button">Search</button></div><div class="results" id="results" aria-live="polite"></div></div>
+<dialog class="app-dialog" id="addDialog" aria-labelledby="addDialogTitle"><header class="dialog-head"><div><h2 id="addDialogTitle">Search & add series</h2><p>Find a saved title or discover something new.</p></div><button class="icon-btn" data-close-dialog="addDialog" type="button" aria-label="Close search"><svg class="ui-icon" aria-hidden="true"><use href="#i-close"></use></svg></button></header><div class="dialog-body">
+  <div class="segmented add-modes" id="addModeTabs"><button class="segment active" data-add-mode="search" type="button">Search</button><button class="segment" data-add-mode="paste" type="button">Bulk paste</button><button class="segment" data-add-mode="manual" type="button">Manual entry</button></div>
+  <div class="add-panel active" id="add-search-panel"><div class="search-row"><label class="field">Title or AniList / SeaDex / MAL link<input class="input" id="searchInput" type="search" autocomplete="off" placeholder="Search titles or paste a link…" aria-label="Search your collection or find new series"></label><button class="btn primary" id="searchBtn" type="button" disabled>Find new series</button></div><h3 class="catalogue-search-heading" id="catalogueSearchHeading" hidden>AniList results</h3><div class="results" id="results" aria-live="polite"></div><section class="collection-search-section" aria-labelledby="collectionSearchHeading"><div class="search-section-header"><h3 id="collectionSearchHeading">In your collection</h3><button class="btn quiet compact" id="filterCollectionBtn" type="button" hidden>Filter this view</button></div><div class="collection-search-results" id="collectionSearchResults" aria-live="polite"></div><p class="hint" id="collectionSearchMore" hidden>Showing the first 30 matches. Refine your search for more specific results.</p></section></div>
   <div class="add-panel" id="add-paste-panel"><p class="hint">Paste titles, AniList, SeaDex, or MAL links, one per line. Review the matches before adding.</p><label class="field">Shows to add<textarea id="batchInput" rows="6" placeholder="Frieren: Beyond Journey’s End&#10;https://anilist.co/anime/1/Cowboy-Bebop/"></textarea></label><div class="mini-actions"><button class="btn primary" id="batchImportBtn" type="button">Review matches</button><button class="btn" id="batchClearBtn" type="button">Clear</button></div><div id="batchReview" hidden class="batch-review-box"><div class="review-head"><strong id="batchReviewSummary">Review matches</strong><div class="mini-actions"><button class="btn primary compact" id="batchConfirmBtn" type="button">Add selected</button><button class="btn compact" id="batchCancelBtn" type="button">Cancel</button></div></div><div class="review" id="batchReviewList"></div></div></div>
   <div class="add-panel" id="add-manual-panel"><p class="hint">Only the title is required. Add an AniList ID to enable automatic release checks.</p><div class="manual-grid"><label class="field wide">Title *<input class="input" id="manualTitle" type="text" autocomplete="off" required></label><label class="field">Year (optional)<input class="input" id="manualYear" type="number" min="1900" max="2100"></label><label class="field">Format (optional)<select id="manualFormat"><option value="">Choose format</option><option>TV</option><option>TV_SHORT</option><option>MOVIE</option><option>SPECIAL</option><option>OVA</option><option>ONA</option><option>MUSIC</option></select></label><label class="field wide">Cover URL (optional)<input class="input" id="manualImageUrl" type="url" placeholder="https://…"></label><label class="field wide">Or upload a cover (optional, under 900 KB)<input class="input" id="manualImageFile" type="file" accept="image/*"></label><label class="field">AniList ID (optional)<input class="input" id="manualAniListId" type="number" min="1"></label><label class="field">MAL ID (optional)<input class="input" id="manualMalId" type="number" min="1"></label><label class="field wide">Notes (optional)<textarea id="manualNotes" rows="3"></textarea></label></div><div class="mini-actions"><button class="btn primary" id="manualAddBtn" type="button">Add to Tracking</button><button class="btn" id="manualClearBtn" type="button">Clear form</button></div></div>
 </div></dialog>
@@ -510,7 +518,6 @@ textarea { resize: vertical; }
         searchInput: q("#searchInput"),
         searchBtn: q("#searchBtn"),
         results: q("#results"),
-        boardSearchInput: q("#boardSearchInput"),
         filterUpdatedBtn: q("#filterUpdatedBtn"),
         addModeTabs: q("#addModeTabs"),
         addPanels: qa(".add-panel"),
@@ -1921,6 +1928,50 @@ textarea { resize: vertical; }
         const j = await aniRequest(query, { idMal: Number(idMal) });
         return j?.data?.Media || null;
       }
+      function collectionSearchMatches(term) {
+        const query = String(term || "").trim().toLowerCase();
+        const shows = [...state.shows];
+        if (!query) return shows.sort((a, b) => (Date.parse(b.createdAt) || 0) - (Date.parse(a.createdAt) || 0));
+        return shows.filter((s) => [s.title, s.titleEnglish, s.titleRomaji, s.format, s.seasonYear, s.comments, s.anilistId, s.malId, groupById(s.groupId)?.name].some((value) => String(value || "").toLowerCase().includes(query))).sort(compareAZ);
+      }
+      function renderCollectionSearch() {
+        const term = els.searchInput.value.trim();
+        const matches = collectionSearchMatches(term);
+        const visible = matches.slice(0, term ? 30 : 6);
+        q("#collectionSearchHeading").textContent = term ? `In your collection (${matches.length})` : "Recently added to your collection";
+        q("#collectionSearchResults").innerHTML = visible.map((s) => `<button class="result" data-open-saved="${escapeAttr(s.id)}" type="button">${coverMarkup(s)}<span class="result-info"><span class="result-title">${escapeHtml(s.title)}</span><span class="result-meta">${escapeHtml([s.seasonYear, s.format, groupById(s.groupId)?.name].filter(Boolean).join(" · "))}</span></span><span class="badge">${getBoard(s) === "downloaded" ? "Library" : "Tracking"}</span></button>`).join("") || `<p class="hint">${term ? "No saved titles match. Use Find new series to search AniList." : "Your collection is empty. Search for a title to add one."}</p>`;
+        const filter = q("#filterCollectionBtn");
+        filter.hidden = !term;
+        filter.textContent = state.ui.activeView === "view-downloaded" ? "Filter Library" : state.ui.activeView === "view-updates" ? "Filter Updates" : "Filter Tracking";
+        q("#collectionSearchMore").hidden = !term || matches.length <= visible.length;
+        els.searchBtn.disabled = !term;
+      }
+      function resetCatalogueSearch() {
+        ++searchRequestId;
+        els.results.classList.remove("open");
+        els.results.innerHTML = "";
+        q("#catalogueSearchHeading").hidden = true;
+        if (els.statusText?.textContent === "Searching...") setStatus("System Ready");
+      }
+      function openSearchDialog() {
+        state.ui.addMode = "search";
+        els.searchInput.value = state.ui.searchByView?.[state.ui.activeView] || els.searchInput.value;
+        resetCatalogueSearch();
+        showAppDialog("addDialog");
+        updateAddMode();
+        renderCollectionSearch();
+        els.searchInput.focus();
+      }
+      function filterCollectionFromSearch() {
+        const term = els.searchInput.value.trim();
+        if (!state.ui.searchByView) state.ui.searchByView = {};
+        state.ui.searchByView[state.ui.activeView] = term;
+        state.localSearch = term;
+        closeAppDialog("addDialog");
+        render(); save();
+        q("#openSearchBtn").focus({ preventScroll: true });
+      }
+
       async function runSearch() {
         if (!q("#addDialog")?.open) return;
         const term = els.searchInput.value.trim();
@@ -1929,6 +1980,7 @@ textarea { resize: vertical; }
           return;
         }
         const rid = ++searchRequestId;
+        q("#catalogueSearchHeading").hidden = false;
         els.results.classList.add("open");
         els.results.innerHTML = '<div class="empty">Searching...</div>';
         setStatus("Searching...");
@@ -3106,7 +3158,6 @@ textarea { resize: vertical; }
         if (!["custom", "title", "recent"].includes(state.ui.viewSort)) state.ui.viewSort = "custom";
         if (!state.ui.searchByView || typeof state.ui.searchByView !== "object") state.ui.searchByView = {};
         state.localSearch = String(state.ui.searchByView[state.ui.activeView] || "").trim();
-        if (els.boardSearchInput.value !== String(state.ui.searchByView[state.ui.activeView] || "")) els.boardSearchInput.value = state.ui.searchByView[state.ui.activeView] || "";
         if (state.ui.updateFolderId && !groupById(state.ui.updateFolderId)) state.ui.updateFolderId = null;
         let visible = state.shows;
         if (state.localSearch) {
@@ -3896,9 +3947,6 @@ textarea { resize: vertical; }
           : target === "view-updates"
             ? "Changes to shows you’ve already downloaded."
             : `${found} ${found === 1 ? "release" : "releases"} available · ${monitoring} ${monitoring === 1 ? "show" : "shows"} being monitored`;
-        const searchLabel = target === "view-downloaded" ? "Search your library" : target === "view-updates" ? "Search release updates" : "Search tracked shows";
-        els.boardSearchInput.placeholder = searchLabel + "…";
-        els.boardSearchInput.setAttribute("aria-label", searchLabel);
         q("#viewSort").value = state.ui.viewSort || "custom";
         q("#viewSort").disabled = target === "view-downloaded" && !!state.ui.sortMode;
         q("#libraryResultTotal").textContent = library.length;
@@ -3917,7 +3965,7 @@ textarea { resize: vertical; }
         state.localSearch = "";
         if (state.ui.activeView === "view-downloaded") { state.ui.filterComplete = false; state.ui.filterIncomplete = false; }
         if (state.ui.activeView === "view-updates") state.ui.updateFolderId = null;
-        render(); save(); els.boardSearchInput.focus();
+        render(); save(); q("#openSearchBtn").focus();
       }
       function renderActiveFilters() {
         const target = q("#activeFilters"), chips = [];
@@ -3937,7 +3985,7 @@ textarea { resize: vertical; }
       function emptyBoard(board) {
         if (state.localSearch || (board === "downloaded" && (state.ui.filterComplete || state.ui.filterIncomplete))) return '<div class="empty"><strong>No matching shows</strong>No shows match this view.<br><button class="btn" data-clear-filters type="button">Clear search and filters</button></div>';
         if (board === "downloaded") return '<div class="empty"><strong>Your library is empty</strong>Move a tracked show to Library to keep it here.</div>';
-        if (board === "found") return `<div class="empty"><strong>${state.shows.some((s) => getBoard(s) !== "downloaded") ? "No releases available yet" : "Start your release collection"}</strong>${state.shows.some((s) => getBoard(s) !== "downloaded") ? "Your monitored shows will appear here when a release is found." : "Add a show to start monitoring releases."}<br><button class="btn" data-open-add type="button">${uiIcon("plus")}Add show</button></div>`;
+        if (board === "found") return `<div class="empty"><strong>${state.shows.some((s) => getBoard(s) !== "downloaded") ? "No releases available yet" : "Start your release collection"}</strong>${state.shows.some((s) => getBoard(s) !== "downloaded") ? "Your monitored shows will appear here when a release is found." : "Use Search below to find and add a title."}</div>`;
         return '<div class="empty">No shows waiting for a release.</div>';
       }
       function showStatusMarkup(s) {
@@ -4053,7 +4101,8 @@ textarea { resize: vertical; }
         q("#folderNameInput").focus(); q("#folderNameInput").select();
       }
       function bindInterface() {
-        on(q("#openAddBtn"), "click", () => { showAppDialog("addDialog"); updateAddMode(); const input = state.ui.addMode === "manual" ? els.manualTitle : state.ui.addMode === "paste" ? els.batchInput : els.searchInput; input?.focus(); });
+        on(q("#openSearchBtn"), "click", () => openSearchDialog());
+        on(q("#filterCollectionBtn"), "click", filterCollectionFromSearch);
         on(q("#checkReleasesBtn"), "click", () => runAutoReleaseCheck({ announce: true, force: true, manual: true }));
         on(q("#retryFailedReleasesBtn"), "click", () => runAutoReleaseCheck({ announce: true, force: true, manual: true, failedOnly: true }));
         on(q("#viewSort"), "change", (e) => { state.ui.viewSort = e.target.value; render(); save(); });
@@ -4068,7 +4117,7 @@ textarea { resize: vertical; }
             state.groups.push({ id, name, collapsed: false, board: "downloaded", allAvailableDownloaded: false });
             state.groupOrder[id] = []; state.order.downloaded.unshift(id);
             state.ui.filterComplete = false; state.ui.filterIncomplete = false; state.ui.viewSort = "custom";
-            state.localSearch = ""; state.ui.searchByView["view-downloaded"] = ""; els.boardSearchInput.value = "";
+            state.localSearch = ""; state.ui.searchByView["view-downloaded"] = ""; els.searchInput.value = "";
           }
           closeAppDialog("folderDialog"); setView("view-downloaded", false); save();
           toast(existing ? "Folder renamed." : "Folder created.");
@@ -4078,7 +4127,8 @@ textarea { resize: vertical; }
           if (t.closest("[data-clear-filters]")) return clearCurrentFilters();
           const close = t.closest("[data-close-dialog]");
           if (close) return closeAppDialog(close.dataset.closeDialog);
-          if (t.closest("[data-open-add]")) { showAppDialog("addDialog"); els.searchInput.focus(); return; }
+          const saved = t.closest("[data-open-saved]");
+          if (saved) return showDetails(saved.dataset.openSaved);
           if (t.closest("#boards")) return;
           const download = t.closest("[data-download-show]");
           if (download) return setDownloaded(download.dataset.downloadShow, true);
@@ -4139,6 +4189,7 @@ textarea { resize: vertical; }
           if (!btn) return;
           state.ui.addMode = btn.dataset.addMode;
           updateAddMode();
+          if (state.ui.addMode === "search") renderCollectionSearch();
           save();
           
           // Auto-focus the relevant input for the active tab
@@ -4149,10 +4200,10 @@ textarea { resize: vertical; }
           }, 50);
         });
         on(els.searchBtn, "click", runSearch);
-        on(els.searchInput, "input", debounce(runSearch, 350));
+        on(els.searchInput, "input", () => { resetCatalogueSearch(); renderCollectionSearch(); });
         on(els.searchInput, "keydown", (e) => {
           if (e.key === "Escape") els.results.classList.remove("open");
-          if (e.key === "Enter") return runSearch();
+          if (e.key === "Enter") { e.preventDefault(); return runSearch(); }
         });
         
         // Allow the Enter key to submit the Manual Add form
@@ -4168,11 +4219,6 @@ textarea { resize: vertical; }
           }
         });
         
-        on(els.boardSearchInput, "input", (e) => {
-          state.ui.searchByView[state.ui.activeView] = e.target.value;
-          state.localSearch = e.target.value.trim();
-          render();
-        });
         document.addEventListener("click", (e) => {
           // Changed .search-card to #add-search-panel so clicking outside actually closes it
           if (!e.target.closest("#add-search-panel"))

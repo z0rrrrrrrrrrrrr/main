@@ -15,13 +15,14 @@
 :root {
   color-scheme: dark;
   --bg: #0b0d13; --surface: #141822; --surface-soft: #1d2331;
+  --folder-entry-bg: #0d1018; --folder-entry-hover: #171c28;
   --surface-softer: #252c3d; --soft: #1d2331; --softer: #252c3d;
   --text: #edf1f8; --muted: #a1abc0; --muted-2: #6b768e; --muted2: #6b768e;
   --line: rgba(255, 255, 255, 0.08); --brand: #8b96ff; --brand-strong: #a8b0ff; --brand2: #a8b0ff;
   --brand-fill: rgba(139, 150, 255, 0.1); --ok: #45d49b; --ok-fill: rgba(69, 212, 155, 0.1);
   --warn: #f2c36b; --warn-fill: rgba(242, 195, 107, 0.12); --danger: #ff7b73;
   --shadow: 0 18px 55px #0007; --radius: 10px;
-  --row-padding: 14px; --row-gap: 12px; --cover-width: 42px; --cover-height: 60px; --action-width: 112px; --menu-width: 35px; --action-height: 30px; --menu-height: 36px;
+  --row-padding: 14px; --row-gap: 12px; --folder-indent: 16px; --cover-width: 42px; --cover-height: 60px; --action-width: 112px; --menu-width: 35px; --action-height: 30px; --menu-height: 36px;
   --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 * { box-sizing: border-box; }
@@ -131,6 +132,7 @@ textarea { resize: vertical; }
 .show-card.has-update > .card-main { background: var(--brand-fill); box-shadow: inset 3px 0 0 var(--brand); }
 .show-card.has-update:hover > .card-main { background: rgba(139,150,255,.16); }
 .show-card.is-sorting > .card-main { --action-width: 144px; }
+.action-label-short { display: none; }
 .row-actions .btn .ui-icon { width: 14px; height: 14px; }
 .menu { position: relative; }
 .menu[open] { z-index: 30; }
@@ -151,14 +153,15 @@ textarea { resize: vertical; }
 .filter-count { padding-left: 4px; font-variant-numeric: tabular-nums; }
 .results-count { color: var(--muted-2); font-size: 12px; margin: 0 0 12px; }
 .folder { min-width: 0; }
-.folder.no-primary-action > .card-main > .content { grid-column: 2 / 4; grid-row: 1; }
-.folder > .card-main > .row-actions:empty { display: none; }
+.show-card.no-primary-action > .card-main > .content { grid-column: 2 / 4; grid-row: 1; }
+.show-card > .card-main > .row-actions:empty { display: none; }
 .folder > .card-main { cursor: pointer; }
 .folder-cover-badge { position: absolute; right: 2px; bottom: 2px; display: grid; place-items: center; width: 19px; height: 18px; border: 1px solid var(--line); border-radius: 4px; color: var(--brand); background: var(--surface); }
 .folder-cover-badge .ui-icon { width: 12px; height: 12px; }
-.folder-list { border-top: 1px solid var(--line); }
+.folder-list { border-top: 1px solid var(--line); background: var(--folder-entry-bg); }
 .folder-list.collapsed { display: none; }
-.folder-list > .show-card { border-left: 0; border-right: 0; border-top: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.folder-list > .show-card { margin-left: var(--folder-indent); background: var(--folder-entry-bg); border-left: 0; border-right: 0; border-top: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.folder-list > .show-card:hover { background: var(--folder-entry-hover); }
 .folder-list > .show-card:last-child { border-bottom: 0; border-radius: 0 0 10px 10px; }
 .empty { padding: 28px 18px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 9px; font-size: 13px; }
 .folder-list > .empty { border: none; }
@@ -254,7 +257,7 @@ textarea { resize: vertical; }
   .header-check { width: 100%; max-width: none; flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; }
   .header-check small { text-align: left; }
   .check-actions { justify-content: flex-start; }
-  :root { --row-gap: 6px; --action-width: 84px; --menu-width: 44px; --action-height: 32px; --menu-height: 44px; }
+  :root { --row-gap: 6px; --folder-indent: 12px; --action-width: 84px; --menu-width: 44px; --action-height: 32px; --menu-height: 44px; }
   .card-main, .downloaded-grid .card-main, #updatedList .card-main { grid-template-columns: var(--cover-width) minmax(0,1fr) var(--action-width) var(--menu-width); grid-template-rows: minmax(var(--menu-height),auto) auto; gap: 4px var(--row-gap); }
   .card-main > .content > .title { grid-column: 2; grid-row: 1; align-self: center; max-width: 100%; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; max-height: 2.8em; overflow: hidden; overflow-wrap: anywhere; }
   .card-main .meta > span:first-child { flex: 0 1 88px; max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
@@ -262,13 +265,14 @@ textarea { resize: vertical; }
   .card-main > .cover-wrap { grid-column: 1; grid-row: 1 / 3; align-self: start; }
   .card-main > .content { display: contents; }
   .card-main > .content > .meta { grid-column: 2 / -1; grid-row: 2; align-self: start; margin-top: 0; }
-  .folder.no-primary-action > .card-main > .content > .title { grid-column: 2 / 4; }
+  .show-card.no-primary-action > .card-main > .content > .title { grid-column: 2 / 4; }
   .card-main > .menu { grid-column: 4; grid-row: 1; align-self: center; margin-top: 0; }
   .card-main > .row-actions { grid-column: 3; grid-row: 1; align-self: center; justify-content: flex-start; gap: 6px; margin-top: 0; }
   .downloaded-grid .row-actions, #updatedList .row-actions { width: min(100%,var(--action-width)); }
   .card-main .row-actions > .btn { padding: 4px 6px; }
   .row-actions > .btn .ui-icon { display: none; }
-  .show-card[data-board="found"] .row-actions > [data-download-show] { display: none; }
+  .row-actions .action-label-long { display: none; }
+  .row-actions .action-label-short { display: inline; }
   .show-card.is-sorting > .card-main { grid-template-columns: var(--cover-width) minmax(0,1fr) var(--menu-width); grid-template-rows: auto auto; }
   .show-card.is-sorting > .card-main > .row-actions { grid-column: 2; grid-row: 3; width: auto; margin-top: 0; }
   .show-card.is-sorting > .card-main > .menu { grid-column: 3; }
@@ -3216,12 +3220,12 @@ textarea { resize: vertical; }
         const sorting = state.ui.sortMode && state.ui.viewSort === "custom" && !state.localSearch && !state.ui.filterComplete && !state.ui.filterIncomplete;
         const edit = sorting ? `<button class="menu-action" data-move-group="${escapeAttr(g.id)}" data-dir="up" type="button">Move folder up</button><button class="menu-action" data-move-group="${escapeAttr(g.id)}" data-dir="down" type="button">Move folder down</button>` : "";
         const singleUrl = updated.length === 1 ? releasePageUrl(updated[0]) : "";
-        const updateAction = !updated.length ? "" : singleUrl ? `<a class="btn soft release-action" href="${escapeAttr(singleUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View release for ${escapeAttr(updated[0].title)} (opens in a new tab)">View release ${uiIcon("external")}</a>` : `<button class="btn soft" data-folder-updates="${escapeAttr(g.id)}" type="button" aria-label="View ${updated.length} pending updates">Updates (${updated.length})</button>`;
+        const updateAction = !updated.length ? "" : singleUrl ? `<a class="menu-action" href="${escapeAttr(singleUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View release for ${escapeAttr(updated[0].title)} (opens in a new tab)">View release ${uiIcon("external")}</a>` : `<button class="menu-action" data-folder-updates="${escapeAttr(g.id)}" type="button" aria-label="View ${updated.length} pending updates">Updates (${updated.length})</button>`;
         const toggleAttrs = `data-toggle-folder="${escapeAttr(g.id)}" aria-expanded="${!g.collapsed}" aria-controls="folder-${escapeAttr(g.id)}"`;
-        const folderAction = sorting ? `<button class="icon-btn" data-move-group="${escapeAttr(g.id)}" data-dir="up" type="button" aria-label="Move ${escapeAttr(g.name)} up">↑</button><button class="icon-btn" data-move-group="${escapeAttr(g.id)}" data-dir="down" type="button" aria-label="Move ${escapeAttr(g.name)} down">↓</button>` : updateAction;
+        const folderAction = sorting ? `<button class="icon-btn" data-move-group="${escapeAttr(g.id)}" data-dir="up" type="button" aria-label="Move ${escapeAttr(g.name)} up">↑</button><button class="icon-btn" data-move-group="${escapeAttr(g.id)}" data-dir="down" type="button" aria-label="Move ${escapeAttr(g.name)} down">↓</button>` : "";
         const completion = !allKids.length ? '<span class="badge">Empty</span>' : `<span class="badge ${folderComplete ? "complete" : "incomplete"}">${folderComplete ? "Complete" : `${complete}/${allKids.length} complete`}</span>`;
         const checked = Math.max(0, ...allKids.map((s) => releaseLastCheckedAt(s, true)));
-        return `<article class="card show-card folder ${updated.length ? "has-update" : ""} ${sorting ? "is-sorting" : ""} ${!folderAction ? "no-primary-action" : ""}" data-item-id="${escapeAttr(g.id)}" data-type="group"><div class="card-main" data-folder-row="${escapeAttr(g.id)}">${cover}<div class="content"><button class="title folder-toggle" title="${escapeAttr(g.name)}" ${toggleAttrs} type="button">${escapeHtml(g.name)}</button><div class="meta"><span>${allKids.length} shows</span>${completion}${updated.length ? `<span class="badge update">${updated.length} ${updated.length === 1 ? "update" : "updates"}</span>` : ""}</div><div class="time">${checked ? "Checked " + escapeHtml(fmtAgo(new Date(checked).toISOString())) : "Not checked yet"}</div></div><div class="row-actions">${folderAction}</div><details class="menu"><summary class="icon-btn" aria-label="Actions for ${escapeAttr(g.name)}">${uiIcon("more")}</summary><div class="menu-panel"><button class="menu-action" data-rename-folder="${escapeAttr(g.id)}" type="button">Rename folder</button><button class="menu-action" data-complete-group="${escapeAttr(g.id)}" type="button">${folderComplete ? "Mark files missing" : "Mark all files downloaded"}</button>${edit}<button class="menu-action danger" data-remove-group="${escapeAttr(g.id)}" type="button">Delete folder</button></div></details></div><div class="folder-list ${g.collapsed ? "collapsed" : ""}" id="folder-${escapeAttr(g.id)}">${ordered.map((s) => renderCard(s)).join("") || '<div class="empty">Open a show’s settings to move it into this folder.</div>'}</div></article>`;
+        return `<article class="card show-card folder ${updated.length ? "has-update" : ""} ${sorting ? "is-sorting" : ""} ${!folderAction ? "no-primary-action" : ""}" data-item-id="${escapeAttr(g.id)}" data-type="group"><div class="card-main" data-folder-row="${escapeAttr(g.id)}">${cover}<div class="content"><button class="title folder-toggle" title="${escapeAttr(g.name)}" ${toggleAttrs} type="button">${escapeHtml(g.name)}</button><div class="meta"><span>${allKids.length} shows</span>${completion}${updated.length ? `<span class="badge update">${updated.length} ${updated.length === 1 ? "update" : "updates"}</span>` : ""}</div><div class="time">${checked ? "Checked " + escapeHtml(fmtAgo(new Date(checked).toISOString())) : "Not checked yet"}</div></div><div class="row-actions">${folderAction}</div><details class="menu"><summary class="icon-btn" aria-label="Actions for ${escapeAttr(g.name)}">${uiIcon("more")}</summary><div class="menu-panel">${updateAction}<button class="menu-action" data-rename-folder="${escapeAttr(g.id)}" type="button">Rename folder</button><button class="menu-action" data-complete-group="${escapeAttr(g.id)}" type="button">${folderComplete ? "Mark files missing" : "Mark all files downloaded"}</button>${edit}<button class="menu-action danger" data-remove-group="${escapeAttr(g.id)}" type="button">Delete folder</button></div></details></div><div class="folder-list ${g.collapsed ? "collapsed" : ""}" id="folder-${escapeAttr(g.id)}">${ordered.map((s) => renderCard(s)).join("") || '<div class="empty">Open a show’s settings to move it into this folder.</div>'}</div></article>`;
       }
       function renderCard(s, updateView = false, rootGroupId = null) {
         s.releasesMoe = defaultRelease(s.releasesMoe);
@@ -3230,17 +3234,15 @@ textarea { resize: vertical; }
         const releaseUrl = releasePageUrl(s), nyaaUrl = safeExternal(s.nyaaUrl);
         const moveAttribute = rootGroupId ? `data-move-group="${escapeAttr(rootGroupId)}"` : `data-move-show="${escapeAttr(s.id)}"`;
         const menu = `<details class="menu"><summary class="icon-btn" aria-label="Actions for ${escapeAttr(s.title)}">${uiIcon("more")}</summary><div class="menu-panel">${releaseUrl ? `<a class="menu-action" href="${escapeAttr(releaseUrl)}" target="_blank" rel="noopener noreferrer">View release ${uiIcon("external")}</a>` : ""}<button class="menu-action" data-detail-show="${escapeAttr(s.id)}" type="button">Show settings</button><button class="menu-action" data-explore-id="${escapeAttr(s.id)}" type="button">Related shows</button>${s.needsAnilist || !s.anilistId ? `<button class="menu-action" data-regenerate-id="${escapeAttr(s.id)}" type="button">Find AniList details</button>` : ""}${s.releasesMoe.updateAvailable ? `<button class="menu-action" data-ack-id="${escapeAttr(s.id)}" type="button">Mark reviewed</button>` : ""}${downloaded ? `<button class="menu-action" data-return-show="${escapeAttr(s.id)}" type="button">Return to Tracking</button>` : `<button class="menu-action" data-download-show="${escapeAttr(s.id)}" type="button">Move to Library</button>`}${nyaaUrl ? `<a class="menu-action" href="${escapeAttr(nyaaUrl)}" target="_blank" rel="noopener noreferrer">Open Nyaa ${uiIcon("external")}</a>` : ""}<button class="menu-action" data-refresh-id="${escapeAttr(s.id)}" type="button">Check for updates</button><button class="menu-action" data-notes-id="${escapeAttr(s.id)}" type="button">Notes</button><button class="menu-action danger" data-remove-id="${escapeAttr(s.id)}" type="button">Remove show</button></div></details>`;
-        const prominent = updateView || s.releasesMoe.updateAvailable || board === "found";
-        const releaseAction = releaseUrl ? `<a class="btn release-action ${prominent ? "soft" : "quiet"}" href="${escapeAttr(releaseUrl)}" target="_blank" rel="noopener noreferrer" aria-label="View release for ${escapeAttr(s.title)} (opens in a new tab)">View release ${uiIcon("external")}</a>` : `<button class="btn release-action ${prominent ? "soft" : "quiet"}" data-detail-show="${escapeAttr(s.id)}" type="button">${prominent ? "Release details" : "Details"} ${uiIcon("chevron")}</button>`;
         let actions = "";
         if (sorting) actions = `${s.groupId && !rootGroupId ? `<button class="icon-btn" data-send-root="${escapeAttr(s.id)}" type="button" aria-label="Move ${escapeAttr(s.title)} out of its folder">↥</button>` : ""}<button class="icon-btn" ${moveAttribute} data-dir="up" type="button" aria-label="Move ${escapeAttr(s.title)} up">↑</button><button class="icon-btn" ${moveAttribute} data-dir="down" type="button" aria-label="Move ${escapeAttr(s.title)} down">↓</button>`;
-        else if (downloaded || updateView) actions = `${releaseAction}`;
-        else if (board === "found") actions = `${releaseAction}<button class="btn" data-download-show="${escapeAttr(s.id)}" type="button">${uiIcon("check")}Move to Library</button>`;
+        else if (downloaded || updateView) actions = "";
+        else if (board === "found") actions = `<button class="btn" data-download-show="${escapeAttr(s.id)}" type="button" aria-label="Move ${escapeAttr(s.title)} to Library">${uiIcon("check")}<span class="action-label-long">Move to Library</span><span class="action-label-short">Library</span></button>`;
         else actions = `<button class="btn quiet" data-detail-show="${escapeAttr(s.id)}" type="button">Details ${uiIcon("chevron")}</button>`;
         const checked = releaseLastCheckedAt(s, downloaded);
         const folder = updateView || state.localSearch ? groupById(s.groupId) : null;
         const folderContext = folder && folderChildren(folder.id).length > 1 ? `<span>${escapeHtml(folder.name)}</span>` : "";
-        return `<article class="card show-card ${notes ? "notes-open" : ""} ${s.releasesMoe.updateAvailable ? "has-update" : ""} ${sorting ? "is-sorting" : ""}" data-item-id="${escapeAttr(s.id)}" data-type="show" data-board="${board}" ${sorting ? 'draggable="true"' : ""}><div class="card-main">${coverMarkup(s)}<div class="content"><button class="title" title="${escapeAttr(s.title)}" data-detail-show="${escapeAttr(s.id)}" type="button">${escapeHtml(s.title)}</button><div class="meta"><span>${escapeHtml([s.seasonYear, s.format].filter(Boolean).join(" · ") || "Anime")}</span>${folderContext}${showStatusMarkup(s)}</div><div class="time">${checked ? "Checked " + escapeHtml(fmtAgo(new Date(checked).toISOString())) : "Not checked yet"}</div></div><div class="row-actions">${actions}</div>${menu}</div><div class="notes"><label class="field">Notes<textarea data-comment-id="${escapeAttr(s.id)}" rows="3">${escapeHtml(s.comments || "")}</textarea></label><button class="btn compact" data-notes-id="${escapeAttr(s.id)}" type="button">Save & close</button></div></article>`;
+        return `<article class="card show-card ${notes ? "notes-open" : ""} ${s.releasesMoe.updateAvailable ? "has-update" : ""} ${sorting ? "is-sorting" : ""} ${!actions ? "no-primary-action" : ""}" data-item-id="${escapeAttr(s.id)}" data-type="show" data-board="${board}" ${sorting ? 'draggable="true"' : ""}><div class="card-main">${coverMarkup(s)}<div class="content"><button class="title" title="${escapeAttr(s.title)}" data-detail-show="${escapeAttr(s.id)}" type="button">${escapeHtml(s.title)}</button><div class="meta"><span>${escapeHtml([s.seasonYear, s.format].filter(Boolean).join(" · ") || "Anime")}</span>${folderContext}${showStatusMarkup(s)}</div><div class="time">${checked ? "Checked " + escapeHtml(fmtAgo(new Date(checked).toISOString())) : "Not checked yet"}</div></div><div class="row-actions">${actions}</div>${menu}</div><div class="notes"><label class="field">Notes<textarea data-comment-id="${escapeAttr(s.id)}" rows="3">${escapeHtml(s.comments || "")}</textarea></label><button class="btn compact" data-notes-id="${escapeAttr(s.id)}" type="button">Save & close</button></div></article>`;
       }
       function moveWithin(arr, id, dir) {
         const i = arr.indexOf(id),
